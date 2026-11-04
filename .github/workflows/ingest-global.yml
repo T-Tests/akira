@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run ingest:global -- --year-from ${{ matrix.from }} --year-to ${{ matrix.to }} --min-votes ${{ inputs.min_votes }}
