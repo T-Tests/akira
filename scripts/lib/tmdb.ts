@@ -15,6 +15,9 @@ export interface TmdbMovie {
   original_language: string;
   vote_average: number;
   genres: { id: number; name: string }[];
+  production_countries: { iso_3166_1: string }[];
+  spoken_languages: { iso_639_1: string }[];
+  keywords?: { keywords: { id: number; name: string }[] };
 }
 
 export interface TmdbProvider {
@@ -56,32 +59,54 @@ export async function tmdb<T>(path: string, params: Record<string, string | numb
   throw new Error(`TMDB retries exhausted: ${path}`);
 }
 
-export const getMovie = (id: number) => tmdb<TmdbMovie>(`/movie/${id}`);
+export const getMovie = (id: number) => tmdb<TmdbMovie>(`/movie/${id}`, { append_to_response: 'keywords' });
+
+export async function findKeywordId(name: string): Promise<number | null> {
+  const r = await tmdb<{ results: { id: number; name: string }[] }>('/search/keyword', { query: name });
+  return r.results.find((k) => k.name.toLowerCase() === name.toLowerCase())?.id ?? null;
+}
 
 export async function getWatchProviders(id: number, country: string): Promise<TmdbRegionProviders | null> {
   const r = await tmdb<{ results: Record<string, TmdbRegionProviders> }>(`/movie/${id}/watch/providers`);
   return r.results[country] ?? null;
 }
 
-/** Discover family movies already streaming in a region on given providers. */
-export async function discoverFamilyIds(opts: {
+export interface DiscoverOpts {
   country: string;
   providers: number[];
   pages: number;
-  language?: string;
-}): Promise<number[]> {
+  audience: 'kids' | 'adults';
+  language?: string;      // original language, ISO 639-1
+  keywordId?: number;     // e.g. "black and white"
+  yearMin?: number;
+  yearMax?: number;
+  minVotes?: number;
+}
+
+/** Discover movies streaming in a region. Kids = Family genre; adults = everything else, best-rated first. */
+export async function discoverIds(o: DiscoverOpts): Promise<number[]> {
   const ids = new Set<number>();
-  for (let page = 1; page <= opts.pages; page++) {
-    const r = await tmdb<{ results: { id: number }[]; total_pages: number }>('/discover/movie', {
-      with_genres: '10751', // Family
-      watch_region: opts.country,
-      with_watch_providers: opts.providers.join('|'),
+  for (let page = 1; page <= o.pages; page++) {
+    const params: Record<string, string | number> = {
+      watch_region: o.country,
+      with_watch_providers: o.providers.join('|'),
       with_watch_monetization_types: 'flatrate|free|ads',
-      sort_by: 'popularity.desc',
       include_adult: 'false',
       page,
-      ...(opts.language ? { with_original_language: opts.language } : {}),
-    });
+    };
+    if (o.audience === 'kids') {
+      params.with_genres = '10751'; // Family
+      params.sort_by = 'popularity.desc';
+    } else {
+      params.without_genres = '10751';
+      params.sort_by = 'vote_average.desc';
+      params['vote_count.gte'] = o.minVotes ?? 300; // avoids obscure, barely-rated titles
+    }
+    if (o.language) params.with_original_language = o.language;
+    if (o.keywordId) params.with_keywords = o.keywordId;
+    if (o.yearMin) params['primary_release_date.gte'] = `${o.yearMin}-01-01`;
+    if (o.yearMax) params['primary_release_date.lte'] = `${o.yearMax}-12-31`;
+    const r = await tmdb<{ results: { id: number }[]; total_pages: number }>('/discover/movie', params);
     r.results.forEach((m) => ids.add(m.id));
     if (page >= r.total_pages) break;
   }

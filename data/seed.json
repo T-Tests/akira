@@ -1,82 +1,665 @@
 {
-  "_note": "Mock data. Severities are editorial estimates for demo; streaming availability is illustrative only (real data comes from TMDB). Provider ids: 8 Netflix, 119 Prime Video, 122 Disney+ Hotstar, 337 Disney+, 1899 Max.",
+  "_note": "Mock data. Severities are editorial estimates for demo; streaming availability and subtitle info are ILLUSTRATIVE only (real data comes from TMDB). TMDB ids/posters should be re-synced with `npm run ingest -- --ids ...`. Provider ids: 8 Netflix, 119 Prime Video, 122 Disney+ Hotstar, 337 Disney+, 1899 Max, 11 MUBI, 258 Criterion Channel, 191 Kanopy.",
   "providers": [
-    { "provider_id": 8, "name": "Netflix" },
-    { "provider_id": 119, "name": "Amazon Prime Video" },
-    { "provider_id": 122, "name": "Disney+ Hotstar" },
-    { "provider_id": 337, "name": "Disney Plus" },
-    { "provider_id": 1899, "name": "Max" }
+    {
+      "provider_id": 8,
+      "name": "Netflix"
+    },
+    {
+      "provider_id": 119,
+      "name": "Amazon Prime Video"
+    },
+    {
+      "provider_id": 122,
+      "name": "Disney+ Hotstar"
+    },
+    {
+      "provider_id": 337,
+      "name": "Disney Plus"
+    },
+    {
+      "provider_id": 1899,
+      "name": "Max"
+    },
+    {
+      "provider_id": 11,
+      "name": "MUBI"
+    },
+    {
+      "provider_id": 258,
+      "name": "Criterion Channel"
+    },
+    {
+      "provider_id": 191,
+      "name": "Kanopy"
+    }
   ],
   "movies": [
     {
-      "tmdb_id": 150540, "title": "Inside Out", "release_year": 2015, "runtime_min": 95,
+      "tmdb_id": 150540,
+      "title": "Inside Out",
+      "release_year": 2015,
+      "runtime_min": 95,
       "poster_path": "/2H1TmgdfNtsKlU9jKdeNyYL5y8T.jpg",
       "overview": "A girl's emotions, Joy, Sadness and others, guide her through a big move.",
-      "recommended_min_age": 5, "tmdb_vote_avg": 7.9,
+      "recommended_min_age": 5,
+      "tmdb_vote_avg": 7.9,
       "takeaway": "Shows kids that every feeling, even sadness, has a purpose. A gentle way to start conversations about emotions.",
       "advisory": "Brief tense scene in the memory dump; themes of homesickness and sadness.",
-      "content": { "violence": 0, "scariness": 1, "language": 0, "sexual_content": 0, "mature_themes": 1, "lgbtq_themes": 0 },
-      "values": [ { "slug": "empathy", "strength": 3 }, { "slug": "resilience", "strength": 2 } ],
+      "content": {
+        "violence": 0,
+        "scariness": 1,
+        "language": 0,
+        "sexual_content": 0,
+        "mature_themes": 1,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "empathy",
+          "strength": 3
+        },
+        {
+          "slug": "resilience",
+          "strength": 2
+        }
+      ],
       "streaming": {
-        "IN": [ { "provider_id": 122, "type": "flatrate" } ],
-        "US": [ { "provider_id": 337, "type": "flatrate" } ]
-      }
+        "IN": [
+          {
+            "provider_id": 122,
+            "type": "flatrate"
+          }
+        ],
+        "US": [
+          {
+            "provider_id": 337,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "kids",
+      "original_language": "en",
+      "origin_countries": [
+        "US"
+      ],
+      "tmdb_genres": [
+        "Animation",
+        "Family",
+        "Comedy"
+      ],
+      "subtitle_languages": [],
+      "is_black_and_white": false
     },
     {
-      "tmdb_id": 10681, "title": "WALL·E", "release_year": 2008, "runtime_min": 98,
+      "tmdb_id": 10681,
+      "title": "WALL·E",
+      "release_year": 2008,
+      "runtime_min": 98,
       "poster_path": "/hbhFnRzzg6ZDmm8YAmxBnQpQIPh.jpg",
       "overview": "A lonely robot cleans an abandoned Earth and finds a purpose, and a friend.",
-      "recommended_min_age": 5, "tmdb_vote_avg": 8.1,
+      "recommended_min_age": 5,
+      "tmdb_vote_avg": 8.1,
       "takeaway": "A near-wordless story about caring for the planet and for each other. Sparks curiosity about robots and waste.",
       "advisory": "Mild cartoon peril (robot chases); a few tense moments aboard the ship.",
-      "content": { "violence": 1, "scariness": 1, "language": 0, "sexual_content": 0, "mature_themes": 1, "lgbtq_themes": 0 },
-      "values": [ { "slug": "environment", "strength": 3 }, { "slug": "stem", "strength": 2 }, { "slug": "empathy", "strength": 2 } ],
+      "content": {
+        "violence": 1,
+        "scariness": 1,
+        "language": 0,
+        "sexual_content": 0,
+        "mature_themes": 1,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "environment",
+          "strength": 3
+        },
+        {
+          "slug": "stem",
+          "strength": 2
+        },
+        {
+          "slug": "empathy",
+          "strength": 2
+        }
+      ],
       "streaming": {
-        "IN": [ { "provider_id": 122, "type": "flatrate" } ],
-        "US": [ { "provider_id": 337, "type": "flatrate" }, { "provider_id": 119, "type": "rent" } ]
-      }
+        "IN": [
+          {
+            "provider_id": 122,
+            "type": "flatrate"
+          }
+        ],
+        "US": [
+          {
+            "provider_id": 337,
+            "type": "flatrate"
+          },
+          {
+            "provider_id": 119,
+            "type": "rent"
+          }
+        ]
+      },
+      "audience": "kids",
+      "original_language": "en",
+      "origin_countries": [
+        "US"
+      ],
+      "tmdb_genres": [
+        "Animation",
+        "Family",
+        "Science Fiction"
+      ],
+      "subtitle_languages": [],
+      "is_black_and_white": false
     },
     {
-      "tmdb_id": 381284, "title": "Hidden Figures", "release_year": 2016, "runtime_min": 127,
+      "tmdb_id": 381284,
+      "title": "Hidden Figures",
+      "release_year": 2016,
+      "runtime_min": 127,
       "poster_path": "/9lfz2X5yaJbFfQ7oY5y6BZqE7sC.jpg",
       "overview": "Three brilliant Black women mathematicians help launch NASA's first astronauts into orbit.",
-      "recommended_min_age": 10, "tmdb_vote_avg": 7.9,
+      "recommended_min_age": 10,
+      "tmdb_vote_avg": 7.9,
       "takeaway": "Real women who used math and determination to beat barriers and help send people to space. Inspires teens toward STEM.",
       "advisory": "Depicts racial segregation and discrimination; brief mild language.",
-      "content": { "violence": 0, "scariness": 1, "language": 1, "sexual_content": 0, "mature_themes": 2, "lgbtq_themes": 0 },
-      "values": [ { "slug": "resilience", "strength": 3 }, { "slug": "stem", "strength": 3 }, { "slug": "teamwork", "strength": 2 }, { "slug": "diversity", "strength": 2 } ],
+      "content": {
+        "violence": 0,
+        "scariness": 1,
+        "language": 1,
+        "sexual_content": 0,
+        "mature_themes": 2,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "resilience",
+          "strength": 3
+        },
+        {
+          "slug": "stem",
+          "strength": 3
+        },
+        {
+          "slug": "teamwork",
+          "strength": 2
+        },
+        {
+          "slug": "diversity",
+          "strength": 2
+        }
+      ],
       "streaming": {
-        "IN": [ { "provider_id": 122, "type": "flatrate" }, { "provider_id": 8, "type": "flatrate" } ],
-        "US": [ { "provider_id": 8, "type": "flatrate" } ]
-      }
+        "IN": [
+          {
+            "provider_id": 122,
+            "type": "flatrate"
+          },
+          {
+            "provider_id": 8,
+            "type": "flatrate"
+          }
+        ],
+        "US": [
+          {
+            "provider_id": 8,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "both",
+      "original_language": "en",
+      "origin_countries": [
+        "US"
+      ],
+      "tmdb_genres": [
+        "Drama",
+        "History"
+      ],
+      "subtitle_languages": [],
+      "is_black_and_white": false
     },
     {
-      "tmdb_id": 1184918, "title": "The Wild Robot", "release_year": 2024, "runtime_min": 102,
+      "tmdb_id": 1184918,
+      "title": "The Wild Robot",
+      "release_year": 2024,
+      "runtime_min": 102,
       "poster_path": "/wTnV3PCVW5O92JMrFvvrRcV39RU.jpg",
       "overview": "A robot stranded on a wild island learns to survive and raise an orphaned gosling.",
-      "recommended_min_age": 7, "tmdb_vote_avg": 8.3,
+      "recommended_min_age": 7,
+      "tmdb_vote_avg": 8.3,
       "takeaway": "A robot learns to care, adapt and protect a family it chose. Warm look at nature, kindness and problem solving.",
       "advisory": "Predator attacks and a storm sequence may frighten under-7s; some animal death.",
-      "content": { "violence": 2, "scariness": 2, "language": 0, "sexual_content": 0, "mature_themes": 2, "lgbtq_themes": 0 },
-      "values": [ { "slug": "empathy", "strength": 3 }, { "slug": "problem_solving", "strength": 2 }, { "slug": "environment", "strength": 2 }, { "slug": "teamwork", "strength": 2 } ],
+      "content": {
+        "violence": 2,
+        "scariness": 2,
+        "language": 0,
+        "sexual_content": 0,
+        "mature_themes": 2,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "empathy",
+          "strength": 3
+        },
+        {
+          "slug": "problem_solving",
+          "strength": 2
+        },
+        {
+          "slug": "environment",
+          "strength": 2
+        },
+        {
+          "slug": "teamwork",
+          "strength": 2
+        }
+      ],
       "streaming": {
-        "IN": [ { "provider_id": 119, "type": "rent" } ],
-        "US": [ { "provider_id": 1899, "type": "flatrate" }, { "provider_id": 119, "type": "flatrate" } ]
-      }
+        "IN": [
+          {
+            "provider_id": 119,
+            "type": "rent"
+          }
+        ],
+        "US": [
+          {
+            "provider_id": 1899,
+            "type": "flatrate"
+          },
+          {
+            "provider_id": 119,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "kids",
+      "original_language": "en",
+      "origin_countries": [
+        "US"
+      ],
+      "tmdb_genres": [
+        "Animation",
+        "Science Fiction",
+        "Family"
+      ],
+      "subtitle_languages": [],
+      "is_black_and_white": false
     },
     {
-      "tmdb_id": 129, "title": "Spirited Away", "release_year": 2001, "runtime_min": 125,
+      "tmdb_id": 129,
+      "title": "Spirited Away",
+      "release_year": 2001,
+      "runtime_min": 125,
       "poster_path": "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
       "overview": "A girl must work in a spirit-world bathhouse to rescue her parents.",
-      "recommended_min_age": 8, "tmdb_vote_avg": 8.5,
+      "recommended_min_age": 8,
+      "tmdb_vote_avg": 8.5,
       "takeaway": "A brave girl grows from timid to resourceful by working hard and staying kind. Beautiful on imagination and respect for nature.",
       "advisory": "Some eerie spirits and a transformation scene (parents turn into pigs) may scare younger kids.",
-      "content": { "violence": 1, "scariness": 2, "language": 0, "sexual_content": 0, "mature_themes": 1, "lgbtq_themes": 0 },
-      "values": [ { "slug": "resilience", "strength": 3 }, { "slug": "creativity", "strength": 3 }, { "slug": "environment", "strength": 2 } ],
+      "content": {
+        "violence": 1,
+        "scariness": 2,
+        "language": 0,
+        "sexual_content": 0,
+        "mature_themes": 1,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "resilience",
+          "strength": 3
+        },
+        {
+          "slug": "creativity",
+          "strength": 3
+        },
+        {
+          "slug": "environment",
+          "strength": 2
+        }
+      ],
       "streaming": {
-        "IN": [ { "provider_id": 8, "type": "flatrate" } ],
-        "US": [ { "provider_id": 1899, "type": "flatrate" } ]
-      }
+        "IN": [
+          {
+            "provider_id": 8,
+            "type": "flatrate"
+          }
+        ],
+        "US": [
+          {
+            "provider_id": 1899,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "kids",
+      "original_language": "ja",
+      "origin_countries": [
+        "JP"
+      ],
+      "tmdb_genres": [
+        "Animation",
+        "Family",
+        "Fantasy"
+      ],
+      "subtitle_languages": [
+        "en"
+      ],
+      "is_black_and_white": false
+    },
+    {
+      "tmdb_id": 346,
+      "title": "Seven Samurai",
+      "release_year": 1954,
+      "runtime_min": 207,
+      "poster_path": null,
+      "overview": "A poor village hires seven masterless samurai to defend it from bandits.",
+      "recommended_min_age": 13,
+      "tmdb_vote_avg": 8.6,
+      "takeaway": "Kurosawa's epic of honour and sacrifice, and the blueprint for the modern ensemble action film. Long, but rewards patience with unforgettable set pieces.",
+      "advisory": "Sustained battle violence and deaths, none graphic by modern standards.",
+      "content": {
+        "violence": 3,
+        "scariness": 1,
+        "language": 0,
+        "sexual_content": 0,
+        "mature_themes": 2,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "craft",
+          "strength": 3
+        },
+        {
+          "slug": "resistance",
+          "strength": 3
+        },
+        {
+          "slug": "class_society",
+          "strength": 2
+        }
+      ],
+      "streaming": {
+        "US": [
+          {
+            "provider_id": 258,
+            "type": "flatrate"
+          }
+        ],
+        "IN": [
+          {
+            "provider_id": 11,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "adults",
+      "original_language": "ja",
+      "origin_countries": [
+        "JP"
+      ],
+      "tmdb_genres": [
+        "Drama",
+        "Action",
+        "History"
+      ],
+      "subtitle_languages": [
+        "en"
+      ],
+      "is_black_and_white": true
+    },
+    {
+      "tmdb_id": 548,
+      "title": "Rashomon",
+      "release_year": 1950,
+      "runtime_min": 88,
+      "poster_path": null,
+      "overview": "A crime is retold by four witnesses, each with a different version of the truth.",
+      "recommended_min_age": 14,
+      "tmdb_vote_avg": 8.2,
+      "takeaway": "A short, gripping puzzle about how memory and self-interest bend the truth. The film that introduced Japanese cinema to the world.",
+      "advisory": "Depicts a sexual assault (non-graphic) and a killing; mature moral themes.",
+      "content": {
+        "violence": 2,
+        "scariness": 1,
+        "language": 0,
+        "sexual_content": 2,
+        "mature_themes": 3,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "truth_morality",
+          "strength": 3
+        },
+        {
+          "slug": "craft",
+          "strength": 3
+        }
+      ],
+      "streaming": {
+        "US": [
+          {
+            "provider_id": 258,
+            "type": "flatrate"
+          }
+        ],
+        "IN": [
+          {
+            "provider_id": 11,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "adults",
+      "original_language": "ja",
+      "origin_countries": [
+        "JP"
+      ],
+      "tmdb_genres": [
+        "Drama",
+        "Crime",
+        "Mystery"
+      ],
+      "subtitle_languages": [
+        "en"
+      ],
+      "is_black_and_white": true
+    },
+    {
+      "tmdb_id": 289,
+      "title": "Casablanca",
+      "release_year": 1942,
+      "runtime_min": 102,
+      "poster_path": null,
+      "overview": "A cynical nightclub owner in wartime Morocco must choose between love and a greater cause.",
+      "recommended_min_age": 12,
+      "tmdb_vote_avg": 8.2,
+      "takeaway": "A romance and a quiet act of resistance wrapped in some of cinema's most quotable lines. An easy entry point into classic Hollywood.",
+      "advisory": "Mild violence and wartime tension; smoking and drinking throughout.",
+      "content": {
+        "violence": 2,
+        "scariness": 1,
+        "language": 0,
+        "sexual_content": 1,
+        "mature_themes": 2,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "love_loss",
+          "strength": 3
+        },
+        {
+          "slug": "resistance",
+          "strength": 2
+        },
+        {
+          "slug": "craft",
+          "strength": 2
+        }
+      ],
+      "streaming": {
+        "US": [
+          {
+            "provider_id": 1899,
+            "type": "flatrate"
+          }
+        ],
+        "IN": [
+          {
+            "provider_id": 119,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "adults",
+      "original_language": "en",
+      "origin_countries": [
+        "US"
+      ],
+      "tmdb_genres": [
+        "Drama",
+        "Romance",
+        "War"
+      ],
+      "subtitle_languages": [],
+      "is_black_and_white": true
+    },
+    {
+      "tmdb_id": 426426,
+      "title": "Roma",
+      "release_year": 2018,
+      "runtime_min": 135,
+      "poster_path": null,
+      "overview": "A year in the life of a domestic worker in 1970s Mexico City.",
+      "recommended_min_age": 16,
+      "tmdb_vote_avg": 7.7,
+      "takeaway": "A tender, observational portrait of class, family and quiet resilience, shot in luminous black and white. Slow and immersive; best watched on a big screen.",
+      "advisory": "Nudity, a childbirth scene, a distressing loss and some strong language.",
+      "content": {
+        "violence": 2,
+        "scariness": 2,
+        "language": 2,
+        "sexual_content": 3,
+        "mature_themes": 3,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "class_society",
+          "strength": 3
+        },
+        {
+          "slug": "family_belonging",
+          "strength": 2
+        },
+        {
+          "slug": "identity_memory",
+          "strength": 2
+        },
+        {
+          "slug": "craft",
+          "strength": 3
+        }
+      ],
+      "streaming": {
+        "US": [
+          {
+            "provider_id": 8,
+            "type": "flatrate"
+          }
+        ],
+        "IN": [
+          {
+            "provider_id": 8,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "adults",
+      "original_language": "es",
+      "origin_countries": [
+        "MX",
+        "US"
+      ],
+      "tmdb_genres": [
+        "Drama"
+      ],
+      "subtitle_languages": [
+        "en",
+        "hi"
+      ],
+      "is_black_and_white": true
+    },
+    {
+      "tmdb_id": 496243,
+      "title": "Parasite",
+      "release_year": 2019,
+      "runtime_min": 133,
+      "poster_path": null,
+      "overview": "A poor family schemes its way into the lives of a wealthy household.",
+      "recommended_min_age": 16,
+      "tmdb_vote_avg": 8.5,
+      "takeaway": "A razor-sharp thriller about class that shifts from comedy to horror without losing control. A modern landmark of world cinema.",
+      "advisory": "Graphic violence in the final act, a sex scene, strong language and disturbing themes.",
+      "content": {
+        "violence": 3,
+        "scariness": 2,
+        "language": 2,
+        "sexual_content": 2,
+        "mature_themes": 3,
+        "lgbtq_themes": 0
+      },
+      "values": [
+        {
+          "slug": "class_society",
+          "strength": 3
+        },
+        {
+          "slug": "family_belonging",
+          "strength": 2
+        },
+        {
+          "slug": "craft",
+          "strength": 2
+        }
+      ],
+      "streaming": {
+        "US": [
+          {
+            "provider_id": 1899,
+            "type": "flatrate"
+          }
+        ],
+        "IN": [
+          {
+            "provider_id": 119,
+            "type": "flatrate"
+          }
+        ]
+      },
+      "audience": "adults",
+      "original_language": "ko",
+      "origin_countries": [
+        "KR"
+      ],
+      "tmdb_genres": [
+        "Comedy",
+        "Thriller",
+        "Drama"
+      ],
+      "subtitle_languages": [
+        "en",
+        "hi"
+      ],
+      "is_black_and_white": false
     }
   ]
 }

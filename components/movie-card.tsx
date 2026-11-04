@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { AlertTriangle, ExternalLink, Sparkles, Clock, Tv } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Sparkles, Clock, Tv, Globe, Film } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { CATEGORIES, valueLabel } from '@/lib/constants';
+import { CATEGORIES, countryName, langName, valueLabel } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { MovieResult } from '@/lib/types';
 
@@ -41,6 +41,25 @@ export function MovieCard({ m }: { m: MovieResult }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 px-3 pb-3 text-sm">
+        {(m.original_language || m.is_black_and_white) && (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+            {m.original_language && (
+              <span className="flex items-center gap-1">
+                <Globe className="h-3.5 w-3.5" />
+                {langName(m.original_language)}
+                {m.origin_countries.length > 0 && ` · ${m.origin_countries.slice(0, 2).map(countryName).join(', ')}`}
+              </span>
+            )}
+            {m.is_black_and_white && <span className="flex items-center gap-1"><Film className="h-3.5 w-3.5" />Black &amp; white</span>}
+            {m.original_language && m.original_language !== 'en' && (
+              <span className="basis-full text-slate-500">
+                {m.subtitle_languages.length > 0
+                  ? `Subtitles: ${m.subtitle_languages.map(langName).join(', ')} (confirm in the app)`
+                  : 'Subtitles or dubs vary by app: check before you start.'}
+              </span>
+            )}
+          </p>
+        )}
         {m.takeaway && (
           <p className="flex gap-2 rounded-xl bg-brand-50 dark:bg-brand-700/20 p-3 text-slate-800 dark:text-slate-100">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><b>Why watch:</b> {m.takeaway}</span>

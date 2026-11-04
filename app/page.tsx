@@ -6,16 +6,32 @@ import { FilterDrawer } from '@/components/filter-drawer';
 import { MovieCard } from '@/components/movie-card';
 import { MovieTile } from '@/components/movie-tile';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { DEFAULT_FILTERS, PRESETS, defaultsFor, detectCountry } from '@/lib/constants';
+import { PRESETS, detectCountry, freshFilters } from '@/lib/constants';
 import { discover, usingMock } from '@/lib/discover';
 import { cn } from '@/lib/utils';
-import type { Filters, MovieResult } from '@/lib/types';
+import type { Audience, Filters, MovieResult } from '@/lib/types';
 
-const KEY = 'akira:filters:v1';
+const KEY = 'akira:state:v2';
+
+interface State { audience: Audience; kids: Filters; adults: Filters }
+const initial = (country = 'IN'): State => ({ audience: 'kids', kids: freshFilters('kids', country), adults: freshFilters('adults', country) });
 const VIEW_KEY = 'akira:view';
 
 export default function Home() {
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [state, setState] = useState<State>(initial());
+  const filters = state[state.audience];
+  const audience = state.audience;
+  // Country and streaming apps are shared by both tabs; everything else is kept per tab.
+  const setFilters = (f: Filters) =>
+    setState((st) => {
+      const other: Audience = st.audience === 'kids' ? 'adults' : 'kids';
+      const shared = f.country !== st[st.audience].country || f.providers !== st[st.audience].providers;
+      return {
+        ...st,
+        [st.audience]: f,
+        ...(shared ? { [other]: { ...st[other], country: f.country, providers: f.providers } } : {}),
+      };
+    });
   const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'detail' | 'grid'>('detail');
@@ -24,8 +40,12 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const s = localStorage.getItem(KEY);
-      setFilters(s ? { ...DEFAULT_FILTERS, ...JSON.parse(s) } : defaultsFor(detectCountry()));
+      const saved = localStorage.getItem(KEY);
+      if (saved) {
+        const j = JSON.parse(saved);
+        const base = initial(j.kids?.country);
+        setState({ audience: j.audience === 'adults' ? 'adults' : 'kids', kids: { ...base.kids, ...j.kids }, adults: { ...base.adults, ...j.adults } });
+      } else setState(initial(detectCountry()));
     } catch {}
     if (localStorage.getItem(VIEW_KEY) === 'grid') setView('grid');
     setHydrated(true);
@@ -34,22 +54,22 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(KEY, JSON.stringify(filters));
+    localStorage.setItem(KEY, JSON.stringify(state));
     let stale = false;
     setError(null);
     const t = setTimeout(() => {
-      discover(filters).then((r) => !stale && setMovies(r)).catch((e) => !stale && setError(e.message));
+      discover(state[state.audience]).then((r) => !stale && setMovies(r)).catch((e) => !stale && setError(e.message));
     }, 150);
     return () => { stale = true; clearTimeout(t); };
-  }, [filters, hydrated]);
+  }, [state, hydrated]);
 
   const applyPreset = (id: string) => {
-    const p = PRESETS.find((x) => x.id === id)!;
-    const { limits, values, valuesMode, maxAge } = DEFAULT_FILTERS;
-    setFilters(filters.preset === id
-      ? { ...filters, limits, values, valuesMode, maxAge, preset: null }
-      : { ...filters, ...p.apply, preset: id });
+    const p = PRESETS[audience].find((x) => x.id === id)!;
+    const base = freshFilters(audience, filters.country, filters.providers);
+    setFilters(filters.preset === id ? base : { ...base, ...p.apply, preset: id });
   };
+
+  const switchAudience = (a: Audience) => { setMovies(null); setState((st) => ({ ...st, audience: a })); };
 
   return (
     <main className="mx-auto min-h-dvh max-w-xl pb-28 md:max-w-5xl lg:max-w-7xl">
@@ -57,7 +77,7 @@ export default function Home() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-extrabold text-brand-700 dark:text-brand-500">Akira ✨</h1>
-            <p className="text-xs text-slate-500">Pick a vibe. Watch in under a minute.</p>
+            <p className="text-xs text-slate-500">{audience === 'kids' ? 'Pick a vibe. Watch in under a minute.' : 'Explore cinema from every country, era and language.'}</p>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -70,8 +90,17 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </div>
+        <div role="tablist" aria-label="Audience" className="mt-3 grid grid-cols-2 rounded-full bg-slate-100 p-1 dark:bg-slate-800 md:max-w-xs">
+          {([['kids', '🧒 Kids'], ['adults', '🎬 Adults']] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={audience === id} onClick={() => switchAudience(id)}
+              className={cn('min-h-10 rounded-full text-sm font-bold transition',
+                audience === id ? 'bg-white text-brand-700 shadow dark:bg-slate-900 dark:text-brand-100' : 'text-slate-500')}>
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-          {PRESETS.map((p) => (
+          {PRESETS[audience].map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)} aria-pressed={filters.preset === p.id}
               className={cn('shrink-0 rounded-2xl border px-4 py-2 text-left transition',
                 filters.preset === p.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900')}>
@@ -83,7 +112,7 @@ export default function Home() {
       </header>
 
       <section className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
-        {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 5 sample films. Connect Supabase for the full catalogue.</p>}
+        {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 10 sample films. Connect Supabase for the full catalogue.</p>}
         {error && <p className="col-span-full rounded-lg bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200">Couldn&apos;t load movies: {error}</p>}
         {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
         {movies?.length === 0 && (
@@ -93,7 +122,7 @@ export default function Home() {
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Titles can be unavailable in your region or on your services. You could:</p>
             <ul className="mx-auto mt-2 max-w-xs list-disc pl-5 text-left text-sm text-slate-600 dark:text-slate-300">
               <li>Add another streaming service you have</li>
-              <li>Loosen a content slider or value filter</li>
+              <li>Loosen a content slider, language, era or theme filter</li>
               <li>Check legal rent/buy options on your platform's store</li>
               <li>Borrow it free from a local library (Libby, Kanopy, Hoopla)</li>
             </ul>
@@ -115,7 +144,7 @@ export default function Home() {
 
       <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
         <Button className="mx-auto flex w-full max-w-xl shadow-lg md:max-w-sm" onClick={() => setOpen(true)}>
-          <SlidersHorizontal className="h-4 w-4" /> Boundaries & values
+          <SlidersHorizontal className="h-4 w-4" /> {audience === 'kids' ? 'Boundaries & values' : 'Filters'}
         </Button>
       </div>
 

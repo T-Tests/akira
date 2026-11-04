@@ -17,7 +17,7 @@ npm run dev                   # http://localhost:3000
 
 ## 3. Set up Supabase (free)
 1. Create a project at supabase.com. Settings → API: copy **Project URL**, **anon key**, **service_role key**.
-2. SQL Editor: run `supabase/migrations/0001_schema.sql`, then `0002_discover_fn.sql`.
+2. SQL Editor: run, in order, `supabase/migrations/0001_schema.sql`, `0002_discover_fn.sql`, `0003_world_cinema.sql` (adds the Kids/Adults audience, languages, countries, black-and-white flag, adult themes and the final `discover_movies`).
 3. Fill `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 4. Load sample data: `npm run seed` (5 films with exact severities/values/streaming). Reload the app.
 > The **service_role key is secret**: only in `.env` / GitHub secrets, never in `NEXT_PUBLIC_*`.
@@ -27,6 +27,15 @@ npm run dev                   # http://localhost:3000
 1. Create a free account at themoviedb.org → Settings → API → copy the **API Read Access Token** to `TMDB_READ_TOKEN`.
 2. Pull family movies streaming in a country: `npm run ingest -- --country IN --providers 8,119,122 --pages 3`
    (provider ids: 8 Netflix, 119 Prime Video, 122 Disney+ Hotstar, 337 Disney+, 1899 Max, 350 Apple TV+).
+   World cinema / adults examples (provider ids: 11 MUBI, 258 Criterion Channel, 191 Kanopy; **verify them** via TMDB `GET /watch/providers/movie`):
+   ```bash
+   npm run ingest -- --country US --audience adults --bw --year-max 1969 --providers 258,11,1899,8   # black & white classics
+   npm run ingest -- --country IN --audience adults --language ja --pages 3                           # Japanese cinema
+   npm run ingest -- --country IN --audience adults --language bn --providers 8,119,122                # Bengali cinema
+   ```
+   Adults discovery excludes the Family genre and sorts by rating (min 300 votes; `--min-votes` to change). A film ingested for both audiences
+   becomes `audience = 'both'`. Black & white comes from TMDB's "black and white" keyword (not perfect; fix individual rows with `is_black_and_white`).
+   **Subtitles:** TMDB has no subtitle/dub data, so cards say "subtitles vary by app" unless you fill `subtitle_languages` / `audio_languages` yourself.
 3. Tag content: get a free Gemini API key at aistudio.google.com and set `LLM_API_KEY` (endpoint/model defaults in `.env.example` already point at Gemini; the script waits `LLM_DELAY_MS`=7000 ms between calls for the free-tier rate limit), optionally put parents-guide text in
    `data/parents-guides/<tmdb_id>.txt` (from sources you're permitted to use; **don't scrape IMDb/Common Sense**), then
    `npm run tag -- --limit 20`. Movies stay **unpublished** until reviewed: in Supabase Table Editor set `is_published = true`
@@ -46,9 +55,10 @@ CLI alternative: `npm run build && npx wrangler pages deploy out --project-name 
 |---|---|---|
 | Refresh streaming availability | Weekly | `.github/workflows/sync.yml` (add repo secrets `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) or `npm run ingest -- --country IN --refresh-stale` |
 | Add new movies | As desired | `ingest` then `tag`, review, publish |
+| Add a language chip or era | Anytime | `LANGUAGES` / `ERAS` in `lib/constants.ts` (ISO 639-1 codes) |
 | Add a country | Anytime | add to `COUNTRIES` in `lib/constants.ts`, run `ingest --country XX` |
 | Add a streaming service | Anytime | add to `PROVIDERS` in `lib/constants.ts` (use TMDB provider id) |
-| Add a value tag | Rare | insert into `inspirational_values`, add to `VALUES` in `lib/constants.ts`, add the slug to the prompt + zod enum in `scripts/tag-movies.ts` |
+| Add a value/theme tag | Rare | insert into `inspirational_values` (set `audience` to kids/adults/both), add to `KIDS_VALUES` or `ADULT_VALUES` in `lib/constants.ts`, add the slug to the prompt + zod enum in `scripts/tag-movies.ts` |
 | Keep Supabase awake | Automatic | the weekly workflow; free projects pause after ~1 week idle |
 | Verify query speed | After large imports | `explain analyze` in `supabase/queries.sql` |
 | Switch LLM | Anytime | change `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL` in `.env`. To re-tag with the new model: `update movies set review_status='draft' where id in (select movie_id from content_warnings where tagged_by = 'old-model-name' and source='llm');` then `npm run tag` |

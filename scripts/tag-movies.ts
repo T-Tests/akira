@@ -24,7 +24,10 @@ const Tag = z.object({
   sexual_content: sev, mature_themes: sev, lgbtq_themes: sev,
   notes: z.record(z.string()).default({}),
   values: z.array(z.object({
-    slug: z.enum(['resilience', 'stem', 'empathy', 'teamwork', 'problem_solving', 'environment', 'creativity', 'honesty', 'diversity']),
+    slug: z.enum([
+      'resilience', 'stem', 'empathy', 'teamwork', 'problem_solving', 'environment', 'creativity', 'honesty', 'diversity',
+      'class_society', 'truth_morality', 'family_belonging', 'love_loss', 'identity_memory', 'resistance', 'craft',
+    ]),
     strength: z.number().int().min(1).max(3),
   })).max(4),
   takeaway: z.string().min(10).max(400),
@@ -58,7 +61,7 @@ async function guideFor(tmdbId: number) {
 
 const { data: drafts, error } = await db
   .from('movies')
-  .select('id,tmdb_id,title,release_year,overview')
+  .select('id,tmdb_id,title,release_year,overview,audience,original_language')
   .eq('review_status', 'draft')
   .limit(Number(a.limit));
 if (error) throw error;
@@ -73,7 +76,7 @@ for (const m of drafts ?? []) {
   try {
     const prompt = template
       .replace('{{title}}', m.title).replace('{{year}}', String(m.release_year ?? ''))
-      .replace('{{tmdb_id}}', String(m.tmdb_id)).replace('{{overview}}', m.overview ?? '')
+      .replace('{{tmdb_id}}', String(m.tmdb_id)).replace('{{audience}}', m.audience).replace('{{language}}', m.original_language ?? 'unknown').replace('{{overview}}', m.overview ?? '')
       .replace('{{parents_guide}}', await guideFor(m.tmdb_id));
 
     const t = Tag.parse(await callLLM(prompt));

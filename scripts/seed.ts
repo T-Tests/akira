@@ -15,7 +15,9 @@ for (const m of seed.movies) {
   const row: any = must(await db.from('movies').upsert({
     tmdb_id: m.tmdb_id, title: m.title, release_year: m.release_year, runtime_min: m.runtime_min,
     poster_path: m.poster_path, overview: m.overview, recommended_min_age: m.recommended_min_age,
-    tmdb_vote_avg: m.tmdb_vote_avg, takeaway: m.takeaway, advisory: m.advisory,
+    tmdb_vote_avg: m.tmdb_vote_avg, audience: m.audience, original_language: m.original_language,
+    origin_countries: m.origin_countries, tmdb_genres: m.tmdb_genres, subtitle_languages: m.subtitle_languages,
+    is_black_and_white: m.is_black_and_white, takeaway: m.takeaway, advisory: m.advisory,
     review_status: 'human_verified', is_published: true,
   }, { onConflict: 'tmdb_id' }).select('id').single());
 

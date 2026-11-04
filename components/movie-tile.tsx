@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Sheet } from './ui/sheet';
 import { MovieCard } from './movie-card';
+import { langName } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { MovieResult } from '@/lib/types';
 
@@ -27,7 +28,7 @@ export function MovieTile({ m }: { m: MovieResult }) {
         </div>
         <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{m.title}</p>
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          {m.recommended_min_age != null ? `${m.recommended_min_age}+ · ` : ''}{m.providers[0]?.name}
+          {m.recommended_min_age != null ? `${m.recommended_min_age}+ · ` : ''}{m.original_language && m.original_language !== 'en' ? `${langName(m.original_language)} · ` : ''}{m.is_black_and_white ? 'B&W · ' : ''}{m.providers[0]?.name}
         </p>
       </button>
       <Sheet open={open} onOpenChange={setOpen} title={m.title}>

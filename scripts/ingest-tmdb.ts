@@ -3,6 +3,8 @@
  *   npm run ingest -- --country IN --providers 8,119,122 --pages 3
  *   npm run ingest -- --country US --ids 862,10191        (specific TMDB ids)
  *   npm run ingest -- --country IN --refresh-stale        (re-sync availability >7d old)
+ *   npm run ingest -- --country US --audience adults --bw --year-max 1969 --providers 258,11,1899
+ *   npm run ingest -- --country IN --audience adults --language ja --pages 3
  *
  * Upserts movie metadata (never touches curated columns: takeaway/advisory/age/is_published)
  * and fully replaces streaming_cache rows for (movie, country).
@@ -11,7 +13,7 @@
 import 'dotenv/config';
 import { parseArgs } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
-import { discoverFamilyIds, getMovie, getWatchProviders } from './lib/tmdb.js';
+import { discoverIds, findKeywordId, getMovie, getWatchProviders } from './lib/tmdb.js';
 
 const { values: a } = parseArgs({
   options: {
@@ -19,11 +21,18 @@ const { values: a } = parseArgs({
     providers: { type: 'string', default: '8,119,122,337,350' }, // Netflix, Prime, Hotstar, Disney+, Apple TV+
     pages: { type: 'string', default: '2' },
     ids: { type: 'string' },
+    audience: { type: 'string', default: 'kids' }, // kids | adults
+    language: { type: 'string' },                  // original language, e.g. ja, fr, hi
+    bw: { type: 'boolean', default: false },       // only TMDB "black and white" keyword
+    'year-min': { type: 'string' },
+    'year-max': { type: 'string' },
+    'min-votes': { type: 'string' },
     'refresh-stale': { type: 'boolean', default: false },
   },
 });
 
 const country = a.country!.toUpperCase();
+const audience = a.audience === 'adults' ? 'adults' : 'kids';
 const providerIds = a.providers!.split(',').map(Number);
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { persistSession: false },
@@ -43,16 +52,34 @@ async function resolveIds(): Promise<number[]> {
     if (error) throw error;
     return [...new Set((data as any[]).map((r) => r.movies.tmdb_id as number))];
   }
-  return discoverFamilyIds({ country, providers: providerIds, pages: Number(a.pages) });
+  const keywordId = a.bw ? await findKeywordId('black and white') : undefined;
+  if (a.bw && !keywordId) throw new Error('TMDB keyword "black and white" not found');
+  return discoverIds({
+    country, providers: providerIds, pages: Number(a.pages), audience,
+    language: a.language, keywordId: keywordId ?? undefined,
+    yearMin: a['year-min'] ? Number(a['year-min']) : undefined,
+    yearMax: a['year-max'] ? Number(a['year-max']) : undefined,
+    minVotes: a['min-votes'] ? Number(a['min-votes']) : undefined,
+  });
 }
 
 async function syncOne(tmdbId: number) {
   const [m, prov] = await Promise.all([getMovie(tmdbId), getWatchProviders(tmdbId, country)]);
 
+  // A film ingested as both kids and adults becomes 'both'; curated 'both' is never downgraded.
+  const existing = await db.from('movies').select('audience').eq('tmdb_id', m.id).maybeSingle();
+  const merged = existing.data && existing.data.audience !== audience ? 'both' : audience;
+  const isBw = m.keywords?.keywords.some((k) => k.name.toLowerCase() === 'black and white');
+
   const { data: row, error } = await db
     .from('movies')
     .upsert(
       {
+        audience: merged,
+        origin_countries: m.production_countries.map((c) => c.iso_3166_1),
+        spoken_languages: m.spoken_languages.map((l) => l.iso_639_1),
+        ...(isBw ? { is_black_and_white: true } : {}), // never un-flag a curated value
+
         tmdb_id: m.id,
         imdb_id: m.imdb_id,
         title: m.title,

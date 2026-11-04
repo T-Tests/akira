@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import seed from '@/data/seed.json';
+import { ERAS } from './constants';
 import type { Filters, MovieResult } from './types';
+
+const eraOf = (id: string | null) => ERAS.find((e) => e.id === id);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,6 +16,7 @@ export async function discover(f: Filters): Promise<MovieResult[]> {
     const { data, error } = await supabase.rpc('discover_movies', {
       p_country: f.country,
       p_providers: f.providers,
+      p_audience: f.audience,
       p_max_violence: f.limits.violence,
       p_max_scariness: f.limits.scariness,
       p_max_language: f.limits.language,
@@ -22,6 +26,12 @@ export async function discover(f: Filters): Promise<MovieResult[]> {
       p_values: f.values.length ? f.values : null,
       p_values_mode: f.valuesMode,
       p_max_age: f.maxAge,
+      p_languages: f.languages.length ? f.languages : null,
+      p_exclude_languages: f.skipEnglish ? ['en'] : null,
+      p_year_min: eraOf(f.era)?.min ?? null,
+      p_year_max: eraOf(f.era)?.max ?? null,
+      p_bw_only: f.bwOnly,
+      p_genres: f.genres.length ? f.genres : null,
       p_limit: 30,
     });
     if (error) throw error;
@@ -33,7 +43,16 @@ export async function discover(f: Filters): Promise<MovieResult[]> {
 function mockDiscover(f: Filters): MovieResult[] {
   const names = new Map(seed.providers.map((p) => [p.provider_id, p.name]));
   const out: MovieResult[] = [];
+  const era = eraOf(f.era);
   seed.movies.forEach((m, i) => {
+    if (!(m.audience === 'both' || m.audience === f.audience)) return;
+    const lang = m.original_language;
+    if (f.languages.length && !f.languages.includes(lang)) return;
+    if (f.skipEnglish && lang === 'en') return;
+    if (era?.min && m.release_year < era.min) return;
+    if (era?.max && m.release_year > era.max) return;
+    if (f.bwOnly && !m.is_black_and_white) return;
+    if (f.genres.length && !f.genres.some((g) => m.tmdb_genres.includes(g))) return;
     const offers = ((m.streaming as Record<string, { provider_id: number; type: string }[]>)[f.country] ?? [])
       .filter((o) => f.providers.includes(o.provider_id) && ['flatrate', 'free', 'ads'].includes(o.type));
     if (!offers.length) return;
@@ -51,6 +70,8 @@ function mockDiscover(f: Filters): MovieResult[] {
         provider_id: o.provider_id, name: names.get(o.provider_id) ?? String(o.provider_id), type: o.type,
         link: `https://www.themoviedb.org/movie/${m.tmdb_id}/watch?locale=${f.country}`,
       })),
+      original_language: lang, origin_countries: m.origin_countries, is_black_and_white: m.is_black_and_white,
+      subtitle_languages: m.subtitle_languages, audience: m.audience,
       value_match_score: mine.reduce((s, v) => s + v.strength, 0),
     });
   });

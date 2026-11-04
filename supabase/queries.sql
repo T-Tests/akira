@@ -5,6 +5,7 @@
 -- A. Via the RPC (what the app uses) ---------------------------------------
 select * from discover_movies(
   p_country       := 'IN',
+  p_audience      := 'kids',
   p_providers     := array[8,119,122],
   p_max_violence  := 1::smallint,
   p_max_scariness := 1::smallint,
@@ -15,6 +16,12 @@ select * from discover_movies(
   p_values        := array['empathy','teamwork'],
   p_values_mode   := 'any'
 );
+
+-- A2. Adults: black & white world cinema (not English) from the 1940s-60s
+select title, original_language, release_year from discover_movies(
+  p_country := 'US', p_providers := array[258,11,1899,8],
+  p_audience := 'adults', p_exclude_languages := array['en'],
+  p_year_max := 1969::smallint, p_bw_only := true);
 
 -- B. Raw SQL equivalents ---------------------------------------------------
 -- B1. ANY of selected values (EXISTS keeps it semi-join, no duplicate rows)

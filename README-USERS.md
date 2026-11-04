@@ -2,6 +2,15 @@
 
 Find a family movie in under a minute: one that fits **your** boundaries, nurtures **your** values, and is on **apps you already have**.
 
+## Two tabs: Kids and Adults
+- **🧒 Kids**: the family finder below, with boundaries and values.
+- **🎬 Adults**: explore cinema. Browse by **era** (silent films to today), **black & white**, **genre**, **themes** and **original language**, from Japanese classics to Bengali drama to Korean thrillers. Content advisories are still shown (and optional to filter on).
+- Each tab remembers its own filters. Your country and streaming apps are shared.
+- Some films suit both and appear in both tabs.
+
+## World cinema: language is no barrier
+Every card shows the film's original language and country. For non-English films it also shows subtitle info when known; otherwise it reminds you that subtitles and dubs vary by app, so check before you press play. Use **Skip English-language films** or pick specific languages in the filters. Add services like MUBI, Criterion Channel or Kanopy under **Where I watch** to see more classics.
+
 ## 3 steps
 1. **Pick a vibe** at the top: 🧸 *Gentle & Curious* (ages 3-6), 🔬 *Science & Problem Solving* (7-10), 🌟 *Inspiring Stories* (teens). Tap again to clear it.
 2. **Fine-tune** with the **Boundaries & values** button at the bottom:
