@@ -1,8 +1,9 @@
-name: Weekly catalogue sync
+name: Catalogue sync (weekly) and tagging (daily)
 
 on:
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '0 3 * * 1'   # weekly: ingest + tag
+    - cron: '0 4 * * *'   # daily: tagging backlog only
   workflow_dispatch:
 
 permissions:
@@ -11,6 +12,7 @@ permissions:
 jobs:
   sync-country:
     name: Sync ${{ matrix.country }}
+    if: github.event.schedule != '0 4 * * *'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -61,6 +63,8 @@ jobs:
   tag-new-drafts:
     name: Tag newly ingested drafts
     needs: sync-country
+    if: ${{ !cancelled() }}
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +74,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Tag + AI-review a batch of new drafts (auto-publishes only when both passes agree)
-        run: npm run tag -- --limit 40 --auto
+        run: npm run tag -- --limit 100 --auto
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
