@@ -6,7 +6,7 @@ import { CATEGORIES, valueLabel } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { MovieResult } from '@/lib/types';
 
-const SEV = ['bg-emerald-100 text-emerald-800', 'bg-lime-100 text-lime-800', 'bg-amber-100 text-amber-800', 'bg-rose-100 text-rose-800'];
+const SEV = ['bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200', 'bg-lime-100 dark:bg-lime-900/40 text-lime-800 dark:text-lime-200', 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200', 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200'];
 
 export function MovieCard({ m }: { m: MovieResult }) {
   const [imgOk, setImgOk] = useState(true);
@@ -14,9 +14,9 @@ export function MovieCard({ m }: { m: MovieResult }) {
   const watch = m.providers.find((p) => p.type === 'flatrate') ?? m.providers[0];
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
       <div className="flex gap-3 p-3">
-        <div className="h-36 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-200">
+        <div className="h-36 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700">
           {imgOk && m.poster_path ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={`https://image.tmdb.org/t/p/w342${m.poster_path}`} alt={`${m.title} poster`} loading="lazy"
@@ -34,7 +34,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
             {m.providers.map((p) => (
-              <Badge key={p.provider_id + p.type} className="bg-brand-50 text-brand-700"><Tv className="h-3 w-3" />{p.name}{p.type === 'ads' ? ' (ads)' : p.type === 'free' ? ' (free)' : ''}</Badge>
+              <Badge key={p.provider_id + p.type} className="bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-100"><Tv className="h-3 w-3" />{p.name}{p.type === 'ads' ? ' (ads)' : p.type === 'free' ? ' (free)' : ''}</Badge>
             ))}
           </div>
         </div>
@@ -42,12 +42,12 @@ export function MovieCard({ m }: { m: MovieResult }) {
 
       <div className="flex flex-1 flex-col gap-2 px-3 pb-3 text-sm">
         {m.takeaway && (
-          <p className="flex gap-2 rounded-xl bg-brand-50 p-3 text-slate-800">
+          <p className="flex gap-2 rounded-xl bg-brand-50 dark:bg-brand-700/20 p-3 text-slate-800 dark:text-slate-100">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><b>Why watch:</b> {m.takeaway}</span>
           </p>
         )}
-        <div className="rounded-xl bg-amber-50 p-3">
-          <p className="flex gap-2 text-slate-800">
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3">
+          <p className="flex gap-2 text-slate-800 dark:text-slate-100">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><b>What to know:</b> {m.advisory ?? 'No advisory yet.'}</span>
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
@@ -56,7 +56,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-1">
-          {m.value_slugs.slice(0, 4).map((s) => <Badge key={s} className="bg-violet-100 text-violet-800">{valueLabel(s)}</Badge>)}
+          {m.value_slugs.slice(0, 4).map((s) => <Badge key={s} className="bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200">{valueLabel(s)}</Badge>)}
         </div>
         {watch?.link && (
           <a href={watch.link} target="_blank" rel="noopener noreferrer"

@@ -15,7 +15,7 @@ const Chip = ({ on, children, onClick }: { on: boolean; children: React.ReactNod
     aria-pressed={on}
     className={cn(
       'min-h-10 rounded-full border px-4 text-sm font-medium transition',
-      on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700',
+      on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200',
     )}
   >
     {children}
@@ -49,7 +49,7 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count }:
             <div key={c.key}>
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 font-medium"><Icon className="h-4 w-4 text-slate-500" />{c.label}</span>
-                <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', v === 3 ? 'bg-slate-100 text-slate-600' : 'bg-brand-100 text-brand-700')}>
+                <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', v === 3 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' : 'bg-brand-100 dark:bg-brand-700/30 text-brand-700 dark:text-brand-100')}>
                   {v === 3 ? 'Any' : `Up to ${c.levels[v]}`}
                 </span>
               </div>
@@ -66,10 +66,10 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count }:
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Values to nurture</h3>
-          <div className="flex rounded-full bg-slate-100 p-0.5 text-xs font-semibold">
+          <div className="flex rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-semibold">
             {(['any', 'all'] as const).map((m) => (
               <button key={m} onClick={() => set({ valuesMode: m })}
-                className={cn('rounded-full px-3 py-1', filters.valuesMode === m && 'bg-white shadow')}>
+                className={cn('rounded-full px-3 py-1', filters.valuesMode === m && 'bg-white dark:bg-slate-900 shadow')}>
                 {m === 'any' ? 'Any' : 'All'}
               </button>
             ))}
@@ -86,7 +86,7 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count }:
         <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Where I watch</h3>
         <select
           value={filters.country} onChange={(e) => set({ country: e.target.value })}
-          className="mb-3 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm" aria-label="Country"
+          className="mb-3 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm" aria-label="Country"
         >
           {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>

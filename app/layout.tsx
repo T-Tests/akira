@@ -10,7 +10,11 @@ export const viewport: Viewport = { themeColor: '#0d9488', width: 'device-width'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Apply saved/system theme before paint to avoid a flash */}
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('akira:theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}" }} />
+      </head>
       <body>{children}</body>
     </html>
   );

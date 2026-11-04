@@ -16,6 +16,10 @@ Find a family movie in under a minute: one that fits **your** boundaries, nurtur
 - Purple tags show the values the film nurtures. "Ages N+" is a guide, not a rule: you know your child best.
 - **Watch on …** opens the film's page for your region.
 
+## Layout and dark mode
+- Top right: the grid/list button switches between **detailed cards** and a **compact poster grid** (3 per row on phones, up to 6 on desktop). Tap a poster to see its full card. The dot on a poster shows the film's highest content level (green → red).
+- The moon/sun button toggles **dark mode**. First visit follows your device setting.
+
 ## Levels
 Violence: none · slapstick · mild · realistic. Scary: none · tense · jump scares · intense. Language: none · mild · moderate · strong.
 Romance/nudity: none · kissing · suggestive · nudity. Mature themes: none · light (bullying) · serious (death, divorce) · heavy (abuse, war).
