@@ -163,9 +163,14 @@ export default function Home() {
             </a>
           </p>
         )}
-        <p className="col-span-full pt-4 text-center text-[11px] text-slate-400">
-          Movie data and streaming availability from TMDB / JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.
-        </p>
+        <div className="col-span-full flex flex-col items-center gap-2 pt-4 text-center text-[11px] text-slate-400">
+          <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">
+            <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" className="h-3" />
+          </a>
+          <p>
+            Movie data and streaming availability from TMDB / JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.
+          </p>
+        </div>
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">

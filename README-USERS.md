@@ -40,4 +40,8 @@ Try adding another streaming app, loosening one slider or value, renting/buying 
 - **Free, no account.** Your choices are saved only on your phone.
 - **Install it**: Share/⋮ menu → *Add to Home Screen*.
 - Ratings come from curated data and AI-assisted tagging and can be imperfect. Preview anything for sensitive kids, and tell us about mistakes.
-- Movie data and streaming availability: TMDB / JustWatch. Not endorsed by TMDB.
+- Movie data and streaming availability: TMDB / JustWatch.
+
+<a href="https://www.themoviedb.org"><img src="public/tmdb-logo.svg" alt="TMDB logo" width="140"></a>
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
