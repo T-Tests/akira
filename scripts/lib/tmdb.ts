@@ -72,6 +72,26 @@ export async function tmdb<T>(path: string, params: Record<string, string | numb
 
 export const getMovie = (id: number) => tmdb<TmdbMovie>(`/movie/${id}`, { append_to_response: 'keywords' });
 
+/** Details + keywords + watch providers for every region in ONE request. */
+export interface TmdbMovieFull extends TmdbMovie {
+  'watch/providers'?: { results: Record<string, TmdbRegionProviders> };
+}
+export const getMovieFull = (id: number) =>
+  tmdb<TmdbMovieFull>(`/movie/${id}`, { append_to_response: 'keywords,watch/providers' });
+
+export interface DiscoverRow { id: number; poster_path: string | null; overview: string; genre_ids: number[] }
+
+/** One page of every movie released in `year` with at least `minVotes` votes (no region/provider filter). */
+export const discoverYear = (year: number, page: number, minVotes: number) =>
+  tmdb<{ results: DiscoverRow[]; total_pages: number }>('/discover/movie', {
+    include_adult: 'false',
+    sort_by: 'vote_count.desc',
+    'vote_count.gte': minVotes,
+    'primary_release_date.gte': `${year}-01-01`,
+    'primary_release_date.lte': `${year}-12-31`,
+    page,
+  });
+
 export async function findKeywordId(name: string): Promise<number | null> {
   const r = await tmdb<{ results: { id: number; name: string }[] }>('/search/keyword', { query: name });
   return r.results.find((k) => k.name.toLowerCase() === name.toLowerCase())?.id ?? null;

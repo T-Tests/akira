@@ -25,6 +25,9 @@ Every card shows the film's original language and country. For non-English films
 - Purple tags show the values the film nurtures. "Ages N+" is a guide, not a rule: you know your child best.
 - **Watch on …** opens the film's page for your region.
 
+## Search any film
+Tap the 🔍 button. Results from our catalogue come first. If a film isn't there, choose **Search TMDB** then **Review with AI**: it is checked by a single AI model within a minute and shown with an **AI-reviewed · unverified** label. Treat that rating with extra care and preview the film yourself.
+
 ## Layout and dark mode
 - Top right: the grid/list button switches between **detailed cards** and a **compact poster grid** (3 per row on phones, up to 6 on desktop). Tap a poster to see its full card. The dot on a poster shows the film's highest content level (green → red).
 - The moon/sun button toggles **dark mode**. First visit follows your device setting.

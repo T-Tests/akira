@@ -26,5 +26,9 @@ export interface MovieResult extends Limits {
   poster_path: string | null; takeaway: string | null; advisory: string | null;
   recommended_min_age: number | null; value_slugs: string[]; providers: Offer[]; value_match_score: number;
   original_language: string | null; origin_countries: string[]; is_black_and_white: boolean;
-  subtitle_languages: string[]; audience: string;
+  subtitle_languages: string[]; audience: string; review_status?: string;
+}
+
+export interface TmdbCandidate {
+  tmdb_id: number; title: string; year: string | null; poster_path: string | null; overview: string; ready: boolean;
 }

@@ -53,8 +53,19 @@ jobs:
           TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      - name: Refresh availability for every catalog title in this country
-        run: npm run ingest -- --country "${{ matrix.country }}" --refresh-all
+  refresh-availability:
+    name: Refresh stalest availability (all countries)
+    if: github.event.schedule != '0 4 * * *'
+    timeout-minutes: 330
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run ingest:global -- --refresh-oldest 15000
         env:
           TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -62,7 +73,7 @@ jobs:
 
   tag-new-drafts:
     name: Tag newly ingested drafts
-    needs: sync-country
+    needs: [sync-country, refresh-availability]
     if: ${{ !cancelled() }}
     timeout-minutes: 60
     runs-on: ubuntu-latest

@@ -27,6 +27,11 @@ export function MovieCard({ m }: { m: MovieResult }) {
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-bold leading-tight">{m.title}</h2>
+          {m.review_status === 'ai_reviewed' && (
+            <Badge className="mt-1 bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
+              <Sparkles className="h-3 w-3" />AI-reviewed · unverified
+            </Badge>
+          )}
           <p className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
             {m.release_year}
             {m.runtime_min && <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{m.runtime_min} min</span>}

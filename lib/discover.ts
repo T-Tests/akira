@@ -8,7 +8,7 @@ const eraOf = (id: string | null) => ERAS.find((e) => e.id === id);
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const usingMock = !url || !anon;
-const supabase = usingMock ? null : createClient(url!, anon!, { auth: { persistSession: false } });
+export const supabase = usingMock ? null : createClient(url!, anon!, { auth: { persistSession: false } });
 
 /** One RPC per search when Supabase is configured; otherwise filters bundled seed data locally. */
 export const PAGE_SIZE = 24;

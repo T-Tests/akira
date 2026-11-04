@@ -12,33 +12,13 @@ import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
-import { z } from 'zod';
+import { Tag, STRICT_PREFIX, fillPrompt } from '../supabase/functions/_shared/tagging.ts';
 
 const { values: a } = parseArgs({
   options: { limit: { type: 'string', default: '20' }, auto: { type: 'boolean', default: false } },
 });
 
-const sev = z.number().int().min(0).max(3);
-const Tag = z.object({
-  tmdb_id: z.number().int(),
-  violence: sev, scariness: sev, language: sev,
-  sexual_content: sev, mature_themes: sev, lgbtq_themes: sev,
-  notes: z.record(z.string()).default({}),
-  values: z.array(z.object({
-    slug: z.enum([
-      'resilience', 'stem', 'empathy', 'teamwork', 'problem_solving', 'environment', 'creativity', 'honesty', 'diversity',
-      'class_society', 'truth_morality', 'family_belonging', 'love_loss', 'identity_memory', 'resistance', 'craft',
-    ]),
-    strength: z.number().int().min(1).max(3),
-  })).max(4),
-  takeaway: z.string().min(10).max(400),
-  advisory: z.string().min(3).max(400),
-  recommended_min_age: z.number().int().min(0).max(18),
-  confidence: z.number().min(0).max(1),
-});
-
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-const template = await readFile(new URL('../prompts/tagging.prompt.md', import.meta.url), 'utf8');
 
 type Endpoint = { baseUrl?: string; key?: string; model?: string };
 const primary: Endpoint = { baseUrl: process.env.LLM_BASE_URL, key: process.env.LLM_API_KEY, model: process.env.LLM_MODEL };
@@ -69,7 +49,6 @@ const CATS = ['violence', 'scariness', 'language', 'sexual_content', 'mature_the
 // Kids ratings must match exactly; adult ratings may differ by 1 (filters there are coarser).
 const MAX_DIFF = { kids: 0, adults: 1, both: 0 } as const;
 const MIN_CONF = { kids: 0.85, adults: 0.75, both: 0.85 } as const;
-const AUDITOR = 'You are a strict, safety-first parent reviewer. When unsure, rate the content higher, never lower. Re-rate this film independently.\n\n';
 
 async function guideFor(tmdbId: number) {
   try { return await readFile(`data/parents-guides/${tmdbId}.txt`, 'utf8'); } catch { return '(none provided)'; }
@@ -79,6 +58,7 @@ const { data: drafts, error } = await db
   .from('movies')
   .select('id,tmdb_id,title,release_year,overview,audience,original_language')
   .eq('review_status', 'draft')
+  .order('tmdb_vote_avg', { ascending: false, nullsFirst: false }) // best-rated first when the backlog is large
   .limit(Number(a.limit));
 if (error) throw error;
 if ((drafts?.length ?? 0) > 0 && (!primary.key || (a.auto && !auditor.key))) {
@@ -94,10 +74,10 @@ let failed = 0;
 for (const m of drafts ?? []) {
   await new Promise((r) => setTimeout(r, delay));
   try {
-    const prompt = template
-      .replace('{{title}}', m.title).replace('{{year}}', String(m.release_year ?? ''))
-      .replace('{{tmdb_id}}', String(m.tmdb_id)).replace('{{audience}}', m.audience).replace('{{language}}', m.original_language ?? 'unknown').replace('{{overview}}', m.overview ?? '')
-      .replace('{{parents_guide}}', await guideFor(m.tmdb_id));
+    const prompt = fillPrompt({
+      title: m.title, year: String(m.release_year ?? ''), tmdb_id: String(m.tmdb_id), audience: m.audience,
+      language: m.original_language ?? 'unknown', overview: m.overview ?? '', parents_guide: await guideFor(m.tmdb_id),
+    });
 
     const t = Tag.parse(await callLLM(prompt));
     if (t.tmdb_id !== m.tmdb_id) throw new Error('tmdb_id mismatch');
@@ -105,7 +85,7 @@ for (const m of drafts ?? []) {
     let agree = false;
     let sevs: Record<(typeof CATS)[number], number> = Object.fromEntries(CATS.map((c) => [c, t[c]])) as any;
     if (a.auto) {
-      const t2 = Tag.parse(await callLLM(AUDITOR + prompt, 0.4, auditor));
+      const t2 = Tag.parse(await callLLM(STRICT_PREFIX + prompt, 0.4, auditor));
       if (t2.tmdb_id !== m.tmdb_id) throw new Error('auditor tmdb_id mismatch');
       const aud = m.audience as keyof typeof MAX_DIFF;
       agree = CATS.every((c) => Math.abs(t[c] - t2[c]) <= MAX_DIFF[aud])

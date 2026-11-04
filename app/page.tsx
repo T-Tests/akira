@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { SlidersHorizontal, Loader2, SearchX, LayoutGrid, List } from 'lucide-react';
+import { SlidersHorizontal, Loader2, SearchX, LayoutGrid, List, Search } from 'lucide-react';
+import { SearchPanel } from '@/components/search-panel';
 import { Button } from '@/components/ui/button';
 import { FilterDrawer } from '@/components/filter-drawer';
 import { MovieCard } from '@/components/movie-card';
@@ -34,6 +35,7 @@ export default function Home() {
     });
   const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [view, setView] = useState<'detail' | 'grid'>('detail');
   const [movies, setMovies] = useState<MovieResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +101,9 @@ export default function Home() {
             <p className="text-xs text-slate-500">{audience === 'kids' ? 'Pick a vibe. Watch in under a minute.' : 'Explore cinema from every country, era and language.'}</p>
           </div>
           <div className="flex items-center gap-1">
+            <button aria-label="Search films" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setSearching(true)}>
+              <Search className="h-5 w-5" />
+            </button>
             <button
               aria-label={view === 'grid' ? 'Show detailed cards' : 'Show compact poster grid'}
               className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -180,6 +185,7 @@ export default function Home() {
       </div>
 
       <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} more={hasMore} />
+      {searching && <SearchPanel country={filters.country} onClose={() => setSearching(false)} />}
     </main>
   );
 }

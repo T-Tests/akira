@@ -1,0 +1,43 @@
+name: Global catalogue ingest (manual, one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      min_votes:
+        description: Minimum TMDB vote count
+        default: '50'
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    name: Ingest ${{ matrix.from }}-${{ matrix.to }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - { from: 1900, to: 1969 }
+          - { from: 1970, to: 1989 }
+          - { from: 1990, to: 1999 }
+          - { from: 2000, to: 2006 }
+          - { from: 2007, to: 2012 }
+          - { from: 2013, to: 2017 }
+          - { from: 2018, to: 2021 }
+          - { from: 2022, to: 2025 }
+          - { from: 2026, to: 2027 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run ingest:global -- --year-from ${{ matrix.from }} --year-to ${{ matrix.to }} --min-votes ${{ inputs.min_votes }}
+        env:
+          TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
