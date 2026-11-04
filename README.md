@@ -17,7 +17,7 @@ npm run dev                   # http://localhost:3000
 
 ## 3. Set up Supabase (free)
 1. Create a project at supabase.com. Settings → API: copy **Project URL**, **anon key**, **service_role key**.
-2. SQL Editor: run, in order, `supabase/migrations/0001_schema.sql`, `0002_discover_fn.sql`, `0003_world_cinema.sql` (adds the Kids/Adults audience, languages, countries, black-and-white flag, adult themes and the final `discover_movies`).
+2. SQL Editor: run, in order, `supabase/migrations/0001_schema.sql`, `0002_discover_fn.sql`, `0003_world_cinema.sql` (adds the Kids/Adults audience, languages, countries, black-and-white flag, adult themes and the final `discover_movies`), `0004_auto_review.sql` (allows the `auto_approved` status).
 3. Fill `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 4. Load sample data: `npm run seed` (10 demo films, including adult/world cinema). Reload the app.
 > The **service_role key is secret**: only in `.env` / GitHub secrets, never in `NEXT_PUBLIC_*`.
@@ -38,9 +38,12 @@ npm run dev                   # http://localhost:3000
    **Subtitles:** TMDB has no subtitle/dub data, so cards say "subtitles vary by app" unless you fill `subtitle_languages` / `audio_languages` yourself.
 3. Tag content: get a free Gemini API key at aistudio.google.com and set `LLM_API_KEY` (endpoint/model defaults in `.env.example` already point at Gemini; the script waits `LLM_DELAY_MS`=7000 ms between calls for the free-tier rate limit), optionally put parents-guide text in
    `data/parents-guides/<tmdb_id>.txt` (from sources you're permitted to use; **don't scrape IMDb/Common Sense**), then
-   `npm run tag -- --limit 20`. Movies stay **unpublished** until reviewed: in Supabase Table Editor set `is_published = true`
-   and `review_status = 'human_verified'` (or use `--publish`, which only publishes with a guide file and confidence ≥ 0.8).
-4. Always spot-check LLM severities for the youngest age groups before publishing; parents rely on them.
+   `npm run tag -- --limit 20 --auto`. **Automated AI review:** every film gets two independent LLM passes (the second is a
+   strict, safety-first reviewer). The film is auto-published (`review_status = 'auto_approved'`) only if the passes agree
+   (kids: identical severities; adults: within 1), confidence is high (kids ≥ 0.85, adults ≥ 0.75) and suggested ages are
+   within 2 years. The **higher** severity of the two is always stored. Anything else stays unpublished for you
+   (`npm run review -- --list`, then `--approve <tmdb_ids>` or `--reject <tmdb_ids>`).
+4. Spot-check occasionally: `npm run review -- --audit 20` prints a random sample of auto-published films. Pull a wrong one with `npm run review -- --unpublish <tmdb_id>` (e.g. after a "Report a wrong rating" issue).
 
 ## 5. Deploy to Cloudflare Pages
 1. Push the repo to GitHub.
@@ -54,7 +57,7 @@ CLI alternative: `npm run build && npx wrangler pages deploy out --project-name 
 | Task | How often | Command / place |
 |---|---|---|
 | Refresh all supported regions | Weekly (automatic, Monday 03:00 UTC) | `.github/workflows/sync.yml` covers IN/US/GB/CA/AU/AE. Per region it discovers Kids (3 pages), Adults (3 pages), 20 original-language lanes (1 page each), and black-and-white Adults (2 pages); then refreshes availability for every known title in that country. It tags up to 50 new drafts afterward. Add repo secrets `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LLM_API_KEY`. |
-| Add / tag new movies | Weekly + manual | The workflow discovers new titles; tagging is limited to 50 drafts per run to respect free-tier LLM quotas. Remaining drafts stay queued for the next run. They remain unpublished for review. Trigger with Actions → Weekly catalogue sync → Run workflow. |
+| Add / tag new movies | Weekly + manual | The workflow discovers new titles; tagging + AI review is limited to 40 drafts per run (2 LLM calls each) to respect free-tier quotas; the rest queue for the next run. Agreed, high-confidence films publish automatically; the rest wait for `npm run review -- --list`. Trigger with Actions → Weekly catalogue sync → Run workflow. |
 | Add a region | Before enabling it | Add its country to `COUNTRIES` in `lib/constants.ts` and provider IDs to the matrix in `.github/workflows/sync.yml`; confirm providers through TMDB's regional watch-provider list. The scheduled job only covers countries in both places. |
 | Add a language chip or era | Anytime | `LANGUAGES` / `ERAS` in `lib/constants.ts` (ISO 639-1 codes) |
 | Add a country | Anytime | add to `COUNTRIES` in `lib/constants.ts`, run `ingest --country XX` |

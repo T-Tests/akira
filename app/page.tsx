@@ -7,7 +7,7 @@ import { MovieCard } from '@/components/movie-card';
 import { MovieTile } from '@/components/movie-tile';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PRESETS, detectCountry, freshFilters } from '@/lib/constants';
-import { discover, usingMock } from '@/lib/discover';
+import { discover, usingMock, PAGE_SIZE } from '@/lib/discover';
 import { cn } from '@/lib/utils';
 import type { Audience, Filters, MovieResult } from '@/lib/types';
 
@@ -37,6 +37,8 @@ export default function Home() {
   const [view, setView] = useState<'detail' | 'grid'>('detail');
   const [movies, setMovies] = useState<MovieResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     try {
@@ -58,10 +60,27 @@ export default function Home() {
     let stale = false;
     setError(null);
     const t = setTimeout(() => {
-      discover(state[state.audience]).then((r) => !stale && setMovies(r)).catch((e) => !stale && setError(e.message));
+      discover(state[state.audience]).then((r) => { if (stale) return; setMovies(r.movies); setHasMore(r.hasMore); }).catch((e) => !stale && setError(e.message));
     }, 150);
     return () => { stale = true; clearTimeout(t); };
   }, [state, hydrated]);
+
+  const loadMore = async () => {
+    if (!movies || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const r = await discover(filters, movies.length);
+      setMovies((cur) => {
+        const seen = new Set((cur ?? []).map((m) => m.id));
+        return [...(cur ?? []), ...r.movies.filter((m) => !seen.has(m.id))];
+      });
+      setHasMore(r.hasMore);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const applyPreset = (id: string) => {
     const p = PRESETS[audience].find((x) => x.id === id)!;
@@ -130,6 +149,13 @@ export default function Home() {
           </div>
         )}
         {movies?.map((m) => (view === 'grid' ? <MovieTile key={m.id} m={m} /> : <MovieCard key={m.id} m={m} />))}
+        {hasMore && (
+          <div className="col-span-full flex justify-center pt-2">
+            <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : `Show ${PAGE_SIZE} more`}
+            </Button>
+          </div>
+        )}
         {process.env.NEXT_PUBLIC_REPORT_URL && (
           <p className="col-span-full pt-2 text-center text-xs">
             <a className="text-brand-700 dark:text-brand-100 underline" href={process.env.NEXT_PUBLIC_REPORT_URL} target="_blank" rel="noopener noreferrer">
@@ -148,7 +174,7 @@ export default function Home() {
         </Button>
       </div>
 
-      <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} />
+      <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} more={hasMore} />
     </main>
   );
 }

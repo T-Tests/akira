@@ -1,7 +1,8 @@
 /**
  * LLM batch-tagging: draft movies -> 0-3 severities + value tags + takeaway/advisory.
  *   npm run tag -- --limit 25            (tags drafts, leaves is_published=false for review)
- *   npm run tag -- --limit 25 --publish  (auto-publish when confidence >= 0.8)
+ *   npm run tag -- --limit 25 --auto     (AI review: second independent strict-reviewer pass;
+ *                                         auto-publish only when both passes agree and confidence is high)
  *
  * Parents-guide text is read from data/parents-guides/<tmdb_id>.txt (you supply it from
  * licensed/permitted sources or your own curation; do NOT scrape IMDb - it violates their terms).
@@ -14,7 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 const { values: a } = parseArgs({
-  options: { limit: { type: 'string', default: '20' }, publish: { type: 'boolean', default: false } },
+  options: { limit: { type: 'string', default: '20' }, auto: { type: 'boolean', default: false } },
 });
 
 const sev = z.number().int().min(0).max(3);
@@ -39,13 +40,13 @@ const Tag = z.object({
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 const template = await readFile(new URL('../prompts/tagging.prompt.md', import.meta.url), 'utf8');
 
-async function callLLM(prompt: string): Promise<unknown> {
+async function callLLM(prompt: string, temperature = 0.1): Promise<unknown> {
   const res = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.LLM_API_KEY}` },
     body: JSON.stringify({
       model: process.env.LLM_MODEL,
-      temperature: 0.1,
+      temperature,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -54,6 +55,12 @@ async function callLLM(prompt: string): Promise<unknown> {
   const j: any = await res.json();
   return JSON.parse(j.choices[0].message.content);
 }
+
+const CATS = ['violence', 'scariness', 'language', 'sexual_content', 'mature_themes', 'lgbtq_themes'] as const;
+// Kids ratings must match exactly; adult ratings may differ by 1 (filters there are coarser).
+const MAX_DIFF = { kids: 0, adults: 1, both: 0 } as const;
+const MIN_CONF = { kids: 0.85, adults: 0.75, both: 0.85 } as const;
+const AUDITOR = 'You are a strict, safety-first parent reviewer. When unsure, rate the content higher, never lower. Re-rate this film independently.\n\n';
 
 async function guideFor(tmdbId: number) {
   try { return await readFile(`data/parents-guides/${tmdbId}.txt`, 'utf8'); } catch { return '(none provided)'; }
@@ -85,11 +92,22 @@ for (const m of drafts ?? []) {
 
     const t = Tag.parse(await callLLM(prompt));
     if (t.tmdb_id !== m.tmdb_id) throw new Error('tmdb_id mismatch');
-    const hasGuide = (await guideFor(m.tmdb_id)) !== '(none provided)';
+    // Independent second opinion; the stricter (higher) severity always wins.
+    let agree = false;
+    let sevs: Record<(typeof CATS)[number], number> = Object.fromEntries(CATS.map((c) => [c, t[c]])) as any;
+    if (a.auto) {
+      const t2 = Tag.parse(await callLLM(AUDITOR + prompt, 0.4));
+      if (t2.tmdb_id !== m.tmdb_id) throw new Error('auditor tmdb_id mismatch');
+      const aud = m.audience as keyof typeof MAX_DIFF;
+      agree = CATS.every((c) => Math.abs(t[c] - t2[c]) <= MAX_DIFF[aud])
+        && Math.min(t.confidence, t2.confidence) >= MIN_CONF[aud]
+        && Math.abs(t.recommended_min_age - t2.recommended_min_age) <= 2;
+      sevs = Object.fromEntries(CATS.map((c) => [c, Math.max(t[c], t2[c])])) as any;
+      await new Promise((r) => setTimeout(r, delay));
+    }
 
     const cw = await db.from('content_warnings').upsert({
-      movie_id: m.id, violence: t.violence, scariness: t.scariness, language: t.language,
-      sexual_content: t.sexual_content, mature_themes: t.mature_themes, lgbtq_themes: t.lgbtq_themes,
+      movie_id: m.id, ...sevs,
       notes: t.notes, source: 'llm', confidence: t.confidence,
       tagged_by: process.env.LLM_MODEL, tagged_at: new Date().toISOString(),
     });
@@ -103,13 +121,13 @@ for (const m of drafts ?? []) {
       if (mv.error) throw mv.error;
     }
 
-    const publish = a.publish && hasGuide && t.confidence >= 0.8;
+    const publish = a.auto && agree;
     const up = await db.from('movies').update({
       takeaway: t.takeaway, advisory: t.advisory, recommended_min_age: t.recommended_min_age,
-      review_status: 'llm_tagged', is_published: publish,
+      review_status: publish ? 'auto_approved' : 'llm_tagged', is_published: publish,
     }).eq('id', m.id);
     if (up.error) throw up.error;
-    console.log(`✓ ${m.title} conf=${t.confidence} ${publish ? '[published]' : '[needs review]'}`);
+    console.log(`✓ ${m.title} conf=${t.confidence} ${publish ? '[auto-published]' : '[needs human review]'}`);
   } catch (e) {
     failed++;
     console.error(`✗ ${m.title}:`, (e as Error).message);

@@ -11,7 +11,15 @@ export const usingMock = !url || !anon;
 const supabase = usingMock ? null : createClient(url!, anon!, { auth: { persistSession: false } });
 
 /** One RPC per search when Supabase is configured; otherwise filters bundled seed data locally. */
-export async function discover(f: Filters): Promise<MovieResult[]> {
+export const PAGE_SIZE = 24;
+
+/** Returns one page plus whether more exist (fetches PAGE_SIZE + 1 rows to know). */
+export async function discover(f: Filters, offset = 0): Promise<{ movies: MovieResult[]; hasMore: boolean }> {
+  const rows = await fetchRows(f, offset);
+  return { movies: rows.slice(0, PAGE_SIZE), hasMore: rows.length > PAGE_SIZE };
+}
+
+async function fetchRows(f: Filters, offset: number): Promise<MovieResult[]> {
   if (supabase) {
     const { data, error } = await supabase.rpc('discover_movies', {
       p_country: f.country,
@@ -32,12 +40,13 @@ export async function discover(f: Filters): Promise<MovieResult[]> {
       p_year_max: eraOf(f.era)?.max ?? null,
       p_bw_only: f.bwOnly,
       p_genres: f.genres.length ? f.genres : null,
-      p_limit: 30,
+      p_limit: PAGE_SIZE + 1,
+      p_offset: offset,
     });
     if (error) throw error;
     return data as MovieResult[];
   }
-  return mockDiscover(f);
+  return mockDiscover(f).slice(offset, offset + PAGE_SIZE + 1);
 }
 
 function mockDiscover(f: Filters): MovieResult[] {

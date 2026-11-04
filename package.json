@@ -8,6 +8,7 @@
     "build": "next build",
     "ingest": "tsx scripts/ingest-tmdb.ts",
     "tag": "tsx scripts/tag-movies.ts",
+    "review": "tsx scripts/review.ts",
     "seed": "tsx scripts/seed.ts",
     "typecheck": "tsc --noEmit"
   },

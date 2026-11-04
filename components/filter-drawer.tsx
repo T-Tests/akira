@@ -24,8 +24,8 @@ const Chip = ({ on, children, onClick }: { on: boolean; children: React.ReactNod
 
 const toggle = <T,>(arr: T[], x: T) => (arr.includes(x) ? arr.filter((a) => a !== x) : [...arr, x]);
 
-export function FilterDrawer({ open, onOpenChange, filters, setFilters, count }: {
-  open: boolean; onOpenChange: (o: boolean) => void; filters: Filters; setFilters: (f: Filters) => void; count: number;
+export function FilterDrawer({ open, onOpenChange, filters, setFilters, count, more }: {
+  open: boolean; onOpenChange: (o: boolean) => void; filters: Filters; setFilters: (f: Filters) => void; count: number; more?: boolean;
 }) {
   const set = (p: Partial<Filters>) => setFilters({ ...filters, preset: null, ...p });
   const adults = filters.audience === 'adults';
@@ -37,7 +37,7 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count }:
       footer={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setFilters(freshFilters(filters.audience, filters.country, filters.providers))}>Reset</Button>
-          <Button className="flex-1" onClick={() => onOpenChange(false)}>Show {count} {count === 1 ? 'movie' : 'movies'}</Button>
+          <Button className="flex-1" onClick={() => onOpenChange(false)}>Show {count}{more ? '+' : ''} {count === 1 ? 'movie' : 'movies'}</Button>
         </div>
       }
     >

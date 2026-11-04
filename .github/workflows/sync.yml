@@ -69,8 +69,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Tag a batch of new drafts (unpublished pending review)
-        run: npm run tag -- --limit 50
+      - name: Tag + AI-review a batch of new drafts (auto-publishes only when both passes agree)
+        run: npm run tag -- --limit 40 --auto
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
