@@ -1,17 +1,79 @@
-name: Sync streaming data
+name: Weekly catalogue sync
+
 on:
-  schedule: [{ cron: '0 3 * * 1' }]   # weekly; also keeps the Supabase free project from pausing
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  sync:
+  sync-country:
+    name: Sync ${{ matrix.country }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Each region makes TMDB requests at a throttled rate; keep aggregate traffic conservative.
+      max-parallel: 2
+      matrix:
+        include:
+          # Keep this list aligned with COUNTRIES in lib/constants.ts.
+          # IDs include the currently configured global, regional and world-cinema services.
+          - country: IN
+            providers: '8,11,119,122,191,258,337,350,1899'
+          - country: US
+            providers: '8,11,119,122,191,258,337,350,1899'
+          - country: GB
+            providers: '8,11,119,122,191,258,337,350,1899'
+          - country: CA
+            providers: '8,11,119,122,191,258,337,350,1899'
+          - country: AU
+            providers: '8,11,119,122,191,258,337,350,1899'
+          - country: AE
+            providers: '8,11,119,122,191,258,337,350,1899'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with:
+          node-version: 20
+          cache: npm
       - run: npm ci
-      - run: npm run ingest -- --country IN --providers 8,119,122 --pages 3
+      - name: Discover and ingest Kids catalogue
+        run: npm run ingest -- --country "${{ matrix.country }}" --providers "${{ matrix.providers }}" --audience kids --pages 3
         env:
           TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Discover adult and world cinema
+        run: npm run ingest -- --country "${{ matrix.country }}" --providers "${{ matrix.providers }}" --audience adults --world-cinema --pages 3
+        env:
+          TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Refresh availability for every catalog title in this country
+        run: npm run ingest -- --country "${{ matrix.country }}" --refresh-all
+        env:
+          TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+  tag-new-drafts:
+    name: Tag newly ingested drafts
+    needs: sync-country
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Tag a batch of new drafts (unpublished pending review)
+        run: npm run tag -- --limit 50
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LLM_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: gemini-2.5-flash

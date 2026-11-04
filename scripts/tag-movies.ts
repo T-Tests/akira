@@ -65,12 +65,16 @@ const { data: drafts, error } = await db
   .eq('review_status', 'draft')
   .limit(Number(a.limit));
 if (error) throw error;
+if ((drafts?.length ?? 0) > 0 && !process.env.LLM_API_KEY) {
+  throw new Error('LLM_API_KEY is required to tag draft movies.');
+}
 
 const { data: valueRows } = await db.from('inspirational_values').select('id,slug');
 const valueId = new Map(valueRows!.map((v) => [v.slug, v.id]));
 
 // Gemini free tier allows roughly 10 requests/min; override with LLM_DELAY_MS.
 const delay = Number(process.env.LLM_DELAY_MS ?? 7000);
+let failed = 0;
 for (const m of drafts ?? []) {
   await new Promise((r) => setTimeout(r, delay));
   try {
@@ -107,6 +111,8 @@ for (const m of drafts ?? []) {
     if (up.error) throw up.error;
     console.log(`✓ ${m.title} conf=${t.confidence} ${publish ? '[published]' : '[needs review]'}`);
   } catch (e) {
+    failed++;
     console.error(`✗ ${m.title}:`, (e as Error).message);
   }
 }
+if (failed > 0) process.exitCode = 1;

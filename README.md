@@ -11,7 +11,7 @@ LLM tagging run on your machine or GitHub Actions, never on Cloudflare.
 ## 2. Run locally
 ```bash
 npm install
-cp .env.example .env          # fill in later; blank frontend vars = demo mode with 5 sample films
+cp .env.example .env          # fill in later; blank frontend vars = demo mode with 10 sample films
 npm run dev                   # http://localhost:3000
 ```
 
@@ -19,7 +19,7 @@ npm run dev                   # http://localhost:3000
 1. Create a project at supabase.com. Settings → API: copy **Project URL**, **anon key**, **service_role key**.
 2. SQL Editor: run, in order, `supabase/migrations/0001_schema.sql`, `0002_discover_fn.sql`, `0003_world_cinema.sql` (adds the Kids/Adults audience, languages, countries, black-and-white flag, adult themes and the final `discover_movies`).
 3. Fill `.env`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
-4. Load sample data: `npm run seed` (5 films with exact severities/values/streaming). Reload the app.
+4. Load sample data: `npm run seed` (10 demo films, including adult/world cinema). Reload the app.
 > The **service_role key is secret**: only in `.env` / GitHub secrets, never in `NEXT_PUBLIC_*`.
 > RLS already limits the public to reading *published* rows.
 
@@ -53,8 +53,9 @@ CLI alternative: `npm run build && npx wrangler pages deploy out --project-name 
 ## 6. Maintain
 | Task | How often | Command / place |
 |---|---|---|
-| Refresh streaming availability | Weekly | `.github/workflows/sync.yml` (add repo secrets `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) or `npm run ingest -- --country IN --refresh-stale` |
-| Add new movies | As desired | `ingest` then `tag`, review, publish |
+| Refresh all supported regions | Weekly (automatic, Monday 03:00 UTC) | `.github/workflows/sync.yml` covers IN/US/GB/CA/AU/AE. Per region it discovers Kids (3 pages), Adults (3 pages), 20 original-language lanes (1 page each), and black-and-white Adults (2 pages); then refreshes availability for every known title in that country. It tags up to 50 new drafts afterward. Add repo secrets `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `LLM_API_KEY`. |
+| Add / tag new movies | Weekly + manual | The workflow discovers new titles; tagging is limited to 50 drafts per run to respect free-tier LLM quotas. Remaining drafts stay queued for the next run. They remain unpublished for review. Trigger with Actions → Weekly catalogue sync → Run workflow. |
+| Add a region | Before enabling it | Add its country to `COUNTRIES` in `lib/constants.ts` and provider IDs to the matrix in `.github/workflows/sync.yml`; confirm providers through TMDB's regional watch-provider list. The scheduled job only covers countries in both places. |
 | Add a language chip or era | Anytime | `LANGUAGES` / `ERAS` in `lib/constants.ts` (ISO 639-1 codes) |
 | Add a country | Anytime | add to `COUNTRIES` in `lib/constants.ts`, run `ingest --country XX` |
 | Add a streaming service | Anytime | add to `PROVIDERS` in `lib/constants.ts` (use TMDB provider id) |

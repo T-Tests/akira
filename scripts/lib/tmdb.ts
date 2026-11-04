@@ -37,6 +37,19 @@ export interface TmdbRegionProviders {
 
 // Simple spacing to stay under TMDB's ~40 req/s soft limit; retries on 429/5xx.
 let last = 0;
+let rateQueue: Promise<void> = Promise.resolve();
+
+async function waitForRateLimit() {
+  const previous = rateQueue;
+  let release!: () => void;
+  rateQueue = new Promise<void>((resolve) => { release = resolve; });
+  await previous;
+  const wait = Math.max(0, last + 60 - Date.now());
+  if (wait) await new Promise((r) => setTimeout(r, wait));
+  last = Date.now();
+  release();
+}
+
 export async function tmdb<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const token = process.env.TMDB_READ_TOKEN;
   if (!token) throw new Error('TMDB_READ_TOKEN missing');
@@ -44,9 +57,7 @@ export async function tmdb<T>(path: string, params: Record<string, string | numb
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 
   for (let attempt = 0; attempt < 4; attempt++) {
-    const wait = Math.max(0, last + 60 - Date.now());
-    if (wait) await new Promise((r) => setTimeout(r, wait));
-    last = Date.now();
+    await waitForRateLimit();
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, accept: 'application/json' } });
     if (res.ok) return (await res.json()) as T;
     if (res.status === 429 || res.status >= 500) {
