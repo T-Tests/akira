@@ -47,11 +47,11 @@ export default function Home() {
   };
 
   return (
-    <main className="mx-auto min-h-dvh max-w-xl pb-28">
-      <header className="sticky top-0 z-30 border-b bg-white/90 px-4 pb-3 pt-4 backdrop-blur">
+    <main className="mx-auto min-h-dvh max-w-xl pb-28 md:max-w-5xl lg:max-w-7xl">
+      <header className="sticky top-0 z-30 border-b bg-white/90 px-4 pb-3 pt-4 backdrop-blur md:px-6">
         <h1 className="text-xl font-extrabold text-brand-700">Akira ✨</h1>
         <p className="text-xs text-slate-500">Pick a vibe. Watch in under a minute.</p>
-        <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
           {PRESETS.map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)} aria-pressed={filters.preset === p.id}
               className={cn('shrink-0 rounded-2xl border px-4 py-2 text-left transition',
@@ -63,12 +63,12 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="space-y-4 px-4 pt-4" aria-live="polite">
-        {usingMock && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Demo mode: showing 5 sample films. Connect Supabase for the full catalogue.</p>}
-        {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">Couldn&apos;t load movies: {error}</p>}
-        {movies === null && !error && <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
+      <section className="grid grid-cols-1 gap-4 px-4 pt-4 md:grid-cols-2 md:px-6 lg:grid-cols-3" aria-live="polite">
+        {usingMock && <p className="col-span-full rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Demo mode: showing 5 sample films. Connect Supabase for the full catalogue.</p>}
+        {error && <p className="col-span-full rounded-lg bg-rose-50 p-3 text-sm text-rose-800">Couldn&apos;t load movies: {error}</p>}
+        {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
         {movies?.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
+          <div className="col-span-full mx-auto w-full max-w-xl rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
             <SearchX className="mx-auto h-8 w-8 text-slate-400" />
             <h2 className="mt-2 font-bold">Nothing matches on your apps</h2>
             <p className="mt-1 text-sm text-slate-600">Titles can be unavailable in your region or on your services. You could:</p>
@@ -83,19 +83,19 @@ export default function Home() {
         )}
         {movies?.map((m) => <MovieCard key={m.id} m={m} />)}
         {process.env.NEXT_PUBLIC_REPORT_URL && (
-          <p className="pt-2 text-center text-xs">
+          <p className="col-span-full pt-2 text-center text-xs">
             <a className="text-brand-700 underline" href={process.env.NEXT_PUBLIC_REPORT_URL} target="_blank" rel="noopener noreferrer">
               Report a wrong rating
             </a>
           </p>
         )}
-        <p className="pt-4 text-center text-[11px] text-slate-400">
+        <p className="col-span-full pt-4 text-center text-[11px] text-slate-400">
           Movie data and streaming availability from TMDB / JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.
         </p>
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
-        <Button className="mx-auto flex w-full max-w-xl shadow-lg" onClick={() => setOpen(true)}>
+        <Button className="mx-auto flex w-full max-w-xl shadow-lg md:max-w-sm" onClick={() => setOpen(true)}>
           <SlidersHorizontal className="h-4 w-4" /> Boundaries & values
         </Button>
       </div>

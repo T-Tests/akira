@@ -14,7 +14,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
   const watch = m.providers.find((p) => p.type === 'flatrate') ?? m.providers[0];
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex gap-3 p-3">
         <div className="h-36 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-200">
           {imgOk && m.poster_path ? (
@@ -40,7 +40,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
         </div>
       </div>
 
-      <div className="space-y-2 px-3 pb-3 text-sm">
+      <div className="flex flex-1 flex-col gap-2 px-3 pb-3 text-sm">
         {m.takeaway && (
           <p className="flex gap-2 rounded-xl bg-brand-50 p-3 text-slate-800">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><b>Why watch:</b> {m.takeaway}</span>
@@ -60,7 +60,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
         </div>
         {watch?.link && (
           <a href={watch.link} target="_blank" rel="noopener noreferrer"
-            className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 font-semibold text-white active:scale-[.98]">
+            className="mt-auto flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 font-semibold text-white active:scale-[.98]">
             Watch on {watch.name} <ExternalLink className="h-4 w-4" />
           </a>
         )}
