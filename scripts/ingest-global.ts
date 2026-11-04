@@ -38,6 +38,16 @@ const must = <T>(r: { data: T; error: { message: string } | null }) => {
   return r.data;
 };
 
+// Parallel jobs touch the same provider rows; retry if Postgres picks us as the deadlock victim.
+async function retry<T>(fn: () => PromiseLike<T>, tries = 5): Promise<T> {
+  for (let i = 1; ; i++) {
+    try { return await fn(); } catch (e) {
+      if (i >= tries || !/deadlock|could not serialize/i.test((e as Error).message)) throw e;
+      await new Promise((r) => setTimeout(r, 300 * i + Math.random() * 500));
+    }
+  }
+}
+
 async function fetchDetails(ids: number[]): Promise<TmdbMovieFull[]> {
   const settled = await Promise.allSettled(ids.map(getMovieFull));
   const out: TmdbMovieFull[] = [];
@@ -69,10 +79,13 @@ async function saveAvailability(movies: TmdbMovieFull[], idByTmdb: Map<number, n
       }
     }
   }
-  if (providers.size) must(await db.from('streaming_providers').upsert([...providers.values()], { onConflict: 'provider_id' }));
-  must(await db.from('streaming_cache').delete().in('movie_id', movieIds).in('country_code', COUNTRIES));
+  if (providers.size) {
+    const sorted = [...providers.values()].sort((x, y) => x.provider_id - y.provider_id);
+    await retry(async () => must(await db.from('streaming_providers').upsert(sorted, { onConflict: 'provider_id' })));
+  }
+  await retry(async () => must(await db.from('streaming_cache').delete().in('movie_id', movieIds).in('country_code', COUNTRIES)));
   const list = [...rows.values()];
-  for (let i = 0; i < list.length; i += 1000) must(await db.from('streaming_cache').insert(list.slice(i, i + 1000)));
+  for (let i = 0; i < list.length; i += 1000) await retry(async () => must(await db.from('streaming_cache').insert(list.slice(i, i + 1000))));
   return list.length;
 }
 
