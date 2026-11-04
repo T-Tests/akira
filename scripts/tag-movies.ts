@@ -40,12 +40,21 @@ const Tag = z.object({
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 const template = await readFile(new URL('../prompts/tagging.prompt.md', import.meta.url), 'utf8');
 
-async function callLLM(prompt: string, temperature = 0.1): Promise<unknown> {
-  const res = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
+type Endpoint = { baseUrl?: string; key?: string; model?: string };
+const primary: Endpoint = { baseUrl: process.env.LLM_BASE_URL, key: process.env.LLM_API_KEY, model: process.env.LLM_MODEL };
+// Optional second model (e.g. gpt-oss:20b-cloud on Ollama) for the auditor pass; falls back to the primary.
+const auditor: Endpoint = {
+  baseUrl: process.env.LLM_AUDIT_BASE_URL || primary.baseUrl,
+  key: process.env.LLM_AUDIT_API_KEY || primary.key,
+  model: process.env.LLM_AUDIT_MODEL || primary.model,
+};
+
+async function callLLM(prompt: string, temperature = 0.1, ep: Endpoint = primary): Promise<unknown> {
+  const res = await fetch(`${ep.baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.LLM_API_KEY}` },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${ep.key}` },
     body: JSON.stringify({
-      model: process.env.LLM_MODEL,
+      model: ep.model,
       temperature,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
@@ -72,8 +81,8 @@ const { data: drafts, error } = await db
   .eq('review_status', 'draft')
   .limit(Number(a.limit));
 if (error) throw error;
-if ((drafts?.length ?? 0) > 0 && !process.env.LLM_API_KEY) {
-  throw new Error('LLM_API_KEY is required to tag draft movies.');
+if ((drafts?.length ?? 0) > 0 && (!primary.key || (a.auto && !auditor.key))) {
+  throw new Error('LLM_API_KEY (and LLM_AUDIT_API_KEY if set up) is required to tag draft movies.');
 }
 
 const { data: valueRows } = await db.from('inspirational_values').select('id,slug');
@@ -96,7 +105,7 @@ for (const m of drafts ?? []) {
     let agree = false;
     let sevs: Record<(typeof CATS)[number], number> = Object.fromEntries(CATS.map((c) => [c, t[c]])) as any;
     if (a.auto) {
-      const t2 = Tag.parse(await callLLM(AUDITOR + prompt, 0.4));
+      const t2 = Tag.parse(await callLLM(AUDITOR + prompt, 0.4, auditor));
       if (t2.tmdb_id !== m.tmdb_id) throw new Error('auditor tmdb_id mismatch');
       const aud = m.audience as keyof typeof MAX_DIFF;
       agree = CATS.every((c) => Math.abs(t[c] - t2[c]) <= MAX_DIFF[aud])
@@ -109,7 +118,7 @@ for (const m of drafts ?? []) {
     const cw = await db.from('content_warnings').upsert({
       movie_id: m.id, ...sevs,
       notes: t.notes, source: 'llm', confidence: t.confidence,
-      tagged_by: process.env.LLM_MODEL, tagged_at: new Date().toISOString(),
+      tagged_by: a.auto && auditor.model !== primary.model ? `${primary.model}+${auditor.model}` : primary.model, tagged_at: new Date().toISOString(),
     });
     if (cw.error) throw cw.error;
 

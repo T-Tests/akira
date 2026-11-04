@@ -81,3 +81,6 @@ jobs:
           LLM_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: gemini-2.5-flash
+          LLM_AUDIT_BASE_URL: https://ollama.com/v1
+          LLM_AUDIT_API_KEY: ${{ secrets.LLM_AUDIT_API_KEY }}
+          LLM_AUDIT_MODEL: gpt-oss:20b-cloud

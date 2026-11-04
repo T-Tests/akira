@@ -65,6 +65,7 @@ CLI alternative: `npm run build && npx wrangler pages deploy out --project-name 
 | Add a value/theme tag | Rare | insert into `inspirational_values` (set `audience` to kids/adults/both), add to `KIDS_VALUES` or `ADULT_VALUES` in `lib/constants.ts`, add the slug to the prompt + zod enum in `scripts/tag-movies.ts` |
 | Keep Supabase awake | Automatic | the weekly workflow; free projects pause after ~1 week idle |
 | Verify query speed | After large imports | `explain analyze` in `supabase/queries.sql` |
+| Auditor model | Optional | `LLM_AUDIT_*` (and the `LLM_AUDIT_API_KEY` Actions secret) pick the second-pass model, default `gpt-oss:20b-cloud` on Ollama Cloud. Swap the model id to try others (e.g. a different `*-cloud` model). Leave the key empty to reuse the primary model. Ollama's free cloud tier has usage limits; lower `--limit` if you hit them. |
 | Switch LLM | Anytime | change `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL` in `.env`. To re-tag with the new model: `update movies set review_status='draft' where id in (select movie_id from content_warnings where tagged_by = 'old-model-name' and source='llm');` then `npm run tag` |
 | Fix a wrong rating | When reported | edit `content_warnings` row, set `source='curated'` |
 
