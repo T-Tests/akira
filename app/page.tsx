@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FilterDrawer } from '@/components/filter-drawer';
 import { MovieCard } from '@/components/movie-card';
 import { MovieTile } from '@/components/movie-tile';
+import { ReviewPanel } from '@/components/review-panel';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PRESETS, detectCountry, freshFilters } from '@/lib/constants';
 import { discover, usingMock, PAGE_SIZE } from '@/lib/discover';
@@ -33,6 +34,8 @@ export default function Home() {
         ...(shared ? { [other]: { ...st[other], country: f.country, providers: f.providers } } : {}),
       };
     });
+  const [reviewing, setReviewing] = useState(false);
+  const [refresh, setRefresh] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -65,7 +68,7 @@ export default function Home() {
       discover(state[state.audience]).then((r) => { if (stale) return; setMovies(r.movies); setHasMore(r.hasMore); }).catch((e) => !stale && setError(e.message));
     }, 150);
     return () => { stale = true; clearTimeout(t); };
-  }, [state, hydrated]);
+  }, [state, hydrated, refresh]);
 
   const loadMore = async () => {
     if (!movies || loadingMore) return;
@@ -114,16 +117,17 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </div>
-        <div role="tablist" aria-label="Audience" className="mt-3 grid grid-cols-2 rounded-full bg-slate-100 p-1 dark:bg-slate-800 md:max-w-xs">
-          {([['kids', '🧒 Kids'], ['adults', '🎬 Adults']] as const).map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={audience === id} onClick={() => switchAudience(id)}
+        <div role="tablist" aria-label="Audience" className="mt-3 grid grid-cols-3 rounded-full bg-slate-100 p-1 dark:bg-slate-800 md:max-w-md">
+          {([['kids', '🧒 Kids'], ['adults', '🎬 Adults'], ['review', '🔍 Review']] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={id === 'review' ? reviewing : !reviewing && audience === id}
+              onClick={() => { if (id === 'review') setReviewing(true); else { setReviewing(false); switchAudience(id); } }}
               className={cn('min-h-10 rounded-full text-sm font-bold transition',
-                audience === id ? 'bg-white text-brand-700 shadow dark:bg-slate-900 dark:text-brand-100' : 'text-slate-500')}>
+                (id === 'review' ? reviewing : !reviewing && audience === id) ? 'bg-white text-brand-700 shadow dark:bg-slate-900 dark:text-brand-100' : 'text-slate-500')}>
               {label}
             </button>
           ))}
         </div>
-        <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+        {!reviewing && <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
           {PRESETS[audience].map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)} aria-pressed={filters.preset === p.id}
               className={cn('shrink-0 rounded-2xl border px-4 py-2 text-left transition',
@@ -132,10 +136,11 @@ export default function Home() {
               <div className={cn('text-xs', filters.preset === p.id ? 'text-brand-100' : 'text-slate-500')}>{p.sub}</div>
             </button>
           ))}
-        </div>
+        </div>}
       </header>
 
-      <section className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
+      {reviewing && <ReviewPanel onChanged={() => setRefresh((n) => n + 1)} />}
+      <section hidden={reviewing} className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
         {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 10 sample films. Connect Supabase for the full catalogue.</p>}
         {error && <p className="col-span-full rounded-lg bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200">Couldn&apos;t load movies: {error}</p>}
         {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
@@ -178,11 +183,11 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
+      {!reviewing && <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
         <Button className="mx-auto flex w-full max-w-xl shadow-lg md:max-w-sm" onClick={() => setOpen(true)}>
           <SlidersHorizontal className="h-4 w-4" /> {audience === 'kids' ? 'Boundaries & values' : 'Filters'}
         </Button>
-      </div>
+      </div>}
 
       <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} more={hasMore} />
       {searching && <SearchPanel country={filters.country} onClose={() => setSearching(false)} />}

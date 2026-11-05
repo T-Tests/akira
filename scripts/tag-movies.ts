@@ -15,7 +15,11 @@ import { createClient } from '@supabase/supabase-js';
 import { Tag, STRICT_PREFIX, fillPrompt } from '../supabase/functions/_shared/tagging.ts';
 
 const { values: a } = parseArgs({
-  options: { limit: { type: 'string', default: '20' }, auto: { type: 'boolean', default: false } },
+  options: {
+    limit: { type: 'string', default: '20' },
+    auto: { type: 'boolean', default: false },
+    'max-minutes': { type: 'string' },   // stop starting new films after this many minutes
+  },
 });
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -59,7 +63,7 @@ const { data: drafts, error } = await db
   .select('id,tmdb_id,title,release_year,overview,audience,original_language')
   .eq('review_status', 'draft')
   .order('tmdb_vote_avg', { ascending: false, nullsFirst: false }) // best-rated first when the backlog is large
-  .limit(Number(a.limit));
+  .limit(Math.min(Number(a.limit), 1000)); // PostgREST returns at most 1000 rows per request
 if (error) throw error;
 if ((drafts?.length ?? 0) > 0 && (!primary.key || (a.auto && !auditor.key))) {
   throw new Error('LLM_API_KEY (and LLM_AUDIT_API_KEY if set up) is required to tag draft movies.');
@@ -71,7 +75,11 @@ const valueId = new Map(valueRows!.map((v) => [v.slug, v.id]));
 // Gemini free tier allows roughly 10 requests/min; override with LLM_DELAY_MS.
 const delay = Number(process.env.LLM_DELAY_MS ?? 7000);
 let failed = 0;
+let attempted = 0;
+const deadline = a['max-minutes'] ? Date.now() + Number(a['max-minutes']) * 60_000 : Infinity;
 for (const m of drafts ?? []) {
+  if (Date.now() > deadline) { console.log('Time budget reached; remaining drafts stay queued for the next run.'); break; }
+  attempted++;
   await new Promise((r) => setTimeout(r, delay));
   try {
     const prompt = fillPrompt({
@@ -122,4 +130,6 @@ for (const m of drafts ?? []) {
     console.error(`✗ ${m.title}:`, (e as Error).message);
   }
 }
-if (failed > 0) process.exitCode = 1;
+console.log(`Processed ${attempted}, failed ${failed}.`);
+// Individual bad model outputs are retried next run; only fail the job when nothing succeeded.
+if (attempted > 0 && failed === attempted) process.exitCode = 1;

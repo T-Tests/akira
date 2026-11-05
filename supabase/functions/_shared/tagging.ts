@@ -3,20 +3,49 @@
 import { z } from 'zod';
 
 const sev = z.number().int().min(0).max(3);
+
+// Models sometimes return objects/arrays for text fields; flatten them to a string.
+const flatten = (v: unknown): unknown => {
+  if (Array.isArray(v)) return v.map(flatten).join(' ');
+  if (v && typeof v === 'object') return Object.values(v).map(flatten).join(' ');
+  return v;
+};
+const text = (min: number, max: number) =>
+  z.preprocess((v) => {
+    const f = flatten(v);
+    return typeof f === 'string' ? f.trim().slice(0, max) : f;
+  }, z.string().min(min));
+
+const slugs = [
+  'resilience', 'stem', 'empathy', 'teamwork', 'problem_solving', 'environment', 'creativity', 'honesty', 'diversity',
+  'class_society', 'truth_morality', 'family_belonging', 'love_loss', 'identity_memory', 'resistance', 'craft',
+] as const;
+const MAX_VALUES = 4;
+// Keep only valid, unique slugs and the 4 strongest; the model occasionally over-tags.
+const cleanValues = (v: unknown): unknown => {
+  if (!Array.isArray(v)) return v;
+  const seen = new Set<string>();
+  return v
+    .filter((x) => x && typeof x === 'object' && (slugs as readonly string[]).includes((x as any).slug) && !seen.has((x as any).slug) && seen.add((x as any).slug))
+    .sort((a, b) => Number((b as any).strength) - Number((a as any).strength))
+    .slice(0, MAX_VALUES);
+};
 export const Tag = z.object({
   tmdb_id: z.number().int(),
   violence: sev, scariness: sev, language: sev,
   sexual_content: sev, mature_themes: sev, lgbtq_themes: sev,
-  notes: z.record(z.string()).default({}),
-  values: z.array(z.object({
-    slug: z.enum([
-      'resilience', 'stem', 'empathy', 'teamwork', 'problem_solving', 'environment', 'creativity', 'honesty', 'diversity',
-      'class_society', 'truth_morality', 'family_belonging', 'love_loss', 'identity_memory', 'resistance', 'craft',
-    ]),
+  notes: z.preprocess(
+    (v) => (v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(flatten(x))]))
+      : {}),
+    z.record(z.string()),
+  ),
+  values: z.preprocess(cleanValues, z.array(z.object({
+    slug: z.enum(slugs),
     strength: z.number().int().min(1).max(3),
-  })).max(4),
-  takeaway: z.string().min(10).max(400),
-  advisory: z.string().min(3).max(400),
+  })).max(MAX_VALUES)),
+  takeaway: text(10, 400),
+  advisory: text(3, 400),
   recommended_min_age: z.number().int().min(0).max(18),
   confidence: z.number().min(0).max(1),
 });

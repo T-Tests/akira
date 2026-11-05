@@ -32,3 +32,9 @@ export interface MovieResult extends Limits {
 export interface TmdbCandidate {
   tmdb_id: number; title: string; year: string | null; poster_path: string | null; overview: string; ready: boolean;
 }
+
+export interface ReviewMovie extends Limits {
+  id: number; tmdb_id: number; title: string; release_year: number | null; runtime_min: number | null;
+  poster_path: string | null; overview: string | null; takeaway: string | null; advisory: string | null;
+  recommended_min_age: number | null; original_language: string | null; audience: string; value_slugs: string[];
+}

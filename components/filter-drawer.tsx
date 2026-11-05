@@ -36,7 +36,7 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count, m
       title={adults ? 'Explore cinema' : 'Your boundaries & values'}
       footer={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setFilters(freshFilters(filters.audience, filters.country, filters.providers))}>Reset</Button>
+          <Button variant="outline" onClick={() => setFilters(freshFilters(filters.audience, filters.country))}>Reset</Button>
           <Button className="flex-1" onClick={() => onOpenChange(false)}>Show {count}{more ? '+' : ''} {count === 1 ? 'movie' : 'movies'}</Button>
         </div>
       }

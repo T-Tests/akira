@@ -72,10 +72,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   tag-new-drafts:
-    name: Tag newly ingested drafts
+    name: Tag newly ingested drafts (${{ github.event.schedule == '0 4 * * *' && 'daily' || 'weekly' }})
     needs: [sync-country, refresh-availability]
     if: ${{ !cancelled() }}
-    timeout-minutes: 60
+    # Weekly runs get a long budget to chew through the backlog; daily runs stay short.
+    timeout-minutes: ${{ github.event.schedule == '0 4 * * *' && 60 || 340 }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -85,7 +86,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Tag + AI-review a batch of new drafts (auto-publishes only when both passes agree)
-        run: npm run tag -- --limit 100 --auto
+        run: npm run tag -- --limit 1000 --max-minutes ${{ github.event.schedule == '0 4 * * *' && 50 || 300 }} --auto
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
