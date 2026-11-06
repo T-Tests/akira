@@ -19,22 +19,16 @@ export interface Filters {
   genres: string[];
 }
 
-export interface Offer { provider_id: number; name: string; type: string; link: string | null }
+export interface Offer { provider_id: number; name: string; type: string; link: string | null; country?: string }
 
 export interface MovieResult extends Limits {
   id: number; tmdb_id: number; title: string; release_year: number | null; runtime_min: number | null;
   poster_path: string | null; takeaway: string | null; advisory: string | null;
-  recommended_min_age: number | null; value_slugs: string[]; providers: Offer[]; value_match_score: number;
+  recommended_min_age: number | null; value_slugs: string[] | null; providers: Offer[]; value_match_score: number;
   original_language: string | null; origin_countries: string[]; is_black_and_white: boolean;
   subtitle_languages: string[]; audience: string; review_status?: string;
 }
 
 export interface TmdbCandidate {
   tmdb_id: number; title: string; year: string | null; poster_path: string | null; overview: string; ready: boolean;
-}
-
-export interface ReviewMovie extends Limits {
-  id: number; tmdb_id: number; title: string; release_year: number | null; runtime_min: number | null;
-  poster_path: string | null; overview: string | null; takeaway: string | null; advisory: string | null;
-  recommended_min_age: number | null; original_language: string | null; audience: string; value_slugs: string[];
 }

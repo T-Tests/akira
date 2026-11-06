@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { MovieCard } from './movie-card';
+import { KidsReview } from './kids-review';
 import { addFromTmdb, searchLibrary, searchTmdb } from '@/lib/lookup';
 import { usingMock } from '@/lib/discover';
-import type { MovieResult, TmdbCandidate } from '@/lib/types';
+import type { Audience, MovieResult, TmdbCandidate } from '@/lib/types';
 
-export function SearchPanel({ country, onClose }: { country: string; onClose: () => void }) {
+export function SearchPanel({ audience, initialReview = false, onClose }: { audience: Audience; initialReview?: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<'search' | 'review'>(initialReview ? 'review' : 'search');
   const [q, setQ] = useState('');
   const [library, setLibrary] = useState<MovieResult[] | null>(null);
   const [candidates, setCandidates] = useState<TmdbCandidate[] | null>(null);
@@ -19,21 +21,22 @@ export function SearchPanel({ country, onClose }: { country: string; onClose: ()
     if (q.trim().length < 2) { setLibrary(null); return; }
     let stale = false;
     const t = setTimeout(() => {
-      searchLibrary(q, country).then((r) => !stale && setLibrary(r)).catch((e) => !stale && setError(e.message));
+      searchLibrary(q, audience).then((r) => !stale && setLibrary(r)).catch((e) => !stale && setError(e.message));
     }, 300);
     return () => { stale = true; clearTimeout(t); };
-  }, [q, country]);
+  }, [q, audience]);
 
-  const run = async <T,>(key: number | 'tmdb', fn: () => Promise<T>, ok: (r: T) => void) => {
+  const run = async <T,>(key: number | 'tmdb', fn: () => Promise<T>, ok: (r: T) => void | Promise<void>) => {
     setBusy(key); setError(null);
-    try { ok(await fn()); } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
+    try { await ok(await fn()); } catch (e) { setError((e as Error).message); } finally { setBusy(null); }
   };
 
   const add = (c: TmdbCandidate) =>
     run(c.tmdb_id, () => addFromTmdb(c.tmdb_id), async () => {
       setCandidates(null);
-      setLibrary(await searchLibrary(c.title, country));
+      setLibrary(await searchLibrary(c.title, audience));
       setQ(c.title);
+      if (audience === 'kids') setTab('review');
     });
 
   return (
@@ -49,6 +52,11 @@ export function SearchPanel({ country, onClose }: { country: string; onClose: ()
         </div>
 
         {error && <p className="mb-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-900/20 dark:text-rose-200">{error}</p>}
+        <div role="tablist" aria-label="Search and community review" className="my-4 flex gap-2">
+          <Button role="tab" aria-selected={tab === 'search'} variant={tab === 'search' ? 'primary' : 'outline'} onClick={() => setTab('search')}>Search</Button>
+          <Button role="tab" aria-selected={tab === 'review'} variant={tab === 'review' ? 'primary' : 'outline'} onClick={() => setTab('review')}>Kids reviews</Button>
+        </div>
+        {tab === 'review' ? <KidsReview /> : <>
 
         {library && (
           <>
@@ -68,8 +76,8 @@ export function SearchPanel({ country, onClose }: { country: string; onClose: ()
 
         {candidates && (
           <ul className="space-y-2">
-            {candidates.length === 0 && <li className="text-center text-sm text-slate-500">TMDB has nothing for that search.</li>}
-            {candidates.map((c) => (
+            {candidates.every((c) => c.ready) && <li className="text-center text-sm text-slate-500">No new titles to review.</li>}
+            {candidates.filter((c) => !c.ready).map((c) => (
               <li key={c.tmdb_id} className="flex gap-3 rounded-xl border border-slate-200 p-2 dark:border-slate-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {c.poster_path && <img src={`https://image.tmdb.org/t/p/w92${c.poster_path}`} alt="" className="h-20 w-14 rounded object-cover" />}
@@ -77,19 +85,16 @@ export function SearchPanel({ country, onClose }: { country: string; onClose: ()
                   <p className="font-bold">{c.title} <span className="font-normal text-slate-500">{c.year}</span></p>
                   <p className="line-clamp-2 text-xs text-slate-500">{c.overview}</p>
                 </div>
-                {c.ready ? (
-                  <Button variant="outline" onClick={() => setQ(c.title)}>View</Button>
-                ) : (
-                  <Button disabled={busy !== null} onClick={() => add(c)}>
-                    {busy === c.tmdb_id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Review with AI'}
-                  </Button>
-                )}
+                <Button disabled={busy !== null} onClick={() => add(c)}>
+                  {busy === c.tmdb_id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Review with AI'}
+                </Button>
               </li>
             ))}
             {busy !== null && typeof busy === 'number' && <li className="text-center text-xs text-slate-500">Reviewing… this can take up to a minute.</li>}
           </ul>
         )}
-        <p className="pt-6 text-center text-[11px] text-slate-400">Films you add are reviewed by a single AI model and labelled unverified.</p>
+        <p className="pt-6 text-center text-[11px] text-slate-400">Films you add appear in Adults after AI tagging. Kids-eligible films require community approval.</p>
+        </>}
       </div>
     </div>
   );

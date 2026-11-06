@@ -19,12 +19,10 @@ const { values: a } = parseArgs({
     'year-from': { type: 'string' },
     'year-to': { type: 'string' },
     'min-votes': { type: 'string', default: '50' },
-    countries: { type: 'string', default: 'IN,US,GB,CA,AU,AE' }, // keep aligned with COUNTRIES in lib/constants.ts
     'refresh-oldest': { type: 'string' },
   },
 });
 
-const COUNTRIES = a.countries!.split(',').map((c) => c.trim().toUpperCase());
 const TYPES = ['flatrate', 'free', 'ads'] as const; // rent/buy are not used by discovery; skipping them saves space
 const BATCH = 20;
 const FAMILY = 10751;
@@ -59,19 +57,20 @@ async function fetchDetails(ids: number[]): Promise<TmdbMovieFull[]> {
 }
 
 async function saveAvailability(movies: TmdbMovieFull[], idByTmdb: Map<number, number>) {
-  const movieIds = movies.map((m) => idByTmdb.get(m.id)!).filter(Boolean);
   const providers = new Map<number, { provider_id: number; name: string; logo_path: string | null }>();
-  const rows = new Map<string, object>();
+  const rows = new Map<number, Map<string, object>>();
   const now = new Date().toISOString();
   for (const m of movies) {
     const movieId = idByTmdb.get(m.id);
     if (!movieId) continue;
-    for (const country of COUNTRIES) {
+    if (!m['watch/providers']?.results) throw new Error(`TMDB did not return availability for ${m.id}`);
+    rows.set(movieId, new Map());
+    for (const country of Object.keys(m['watch/providers'].results)) {
       const region = m['watch/providers']?.results?.[country];
       for (const type of TYPES) {
         for (const p of region?.[type] ?? []) {
           providers.set(p.provider_id, { provider_id: p.provider_id, name: p.provider_name, logo_path: p.logo_path });
-          rows.set(`${movieId}|${country}|${p.provider_id}|${type}`, {
+          rows.get(movieId)!.set(`${country}|${p.provider_id}|${type}`, {
             movie_id: movieId, country_code: country, provider_id: p.provider_id,
             monetization_type: type, deep_link: region?.link ?? null, fetched_at: now,
           });
@@ -83,10 +82,13 @@ async function saveAvailability(movies: TmdbMovieFull[], idByTmdb: Map<number, n
     const sorted = [...providers.values()].sort((x, y) => x.provider_id - y.provider_id);
     await retry(async () => must(await db.from('streaming_providers').upsert(sorted, { onConflict: 'provider_id' })));
   }
-  await retry(async () => must(await db.from('streaming_cache').delete().in('movie_id', movieIds).in('country_code', COUNTRIES)));
-  const list = [...rows.values()];
-  for (let i = 0; i < list.length; i += 1000) await retry(async () => must(await db.from('streaming_cache').insert(list.slice(i, i + 1000))));
-  return list.length;
+  let total = 0;
+  for (const [movieId, offers] of rows) {
+    const list = [...offers.values()];
+    await retry(async () => must(await db.rpc('replace_movie_availability', { p_movie_id: movieId, p_offers: list })));
+    total += list.length;
+  }
+  return total;
 }
 
 /** New films: insert metadata as drafts, then availability. */
@@ -117,13 +119,9 @@ async function addBatch(ids: number[]) {
 async function refreshBatch(ids: number[]) {
   const movies = await fetchDetails(ids);
   if (!movies.length) return 0;
-  const saved = must(
-    await db.from('movies').upsert(
-      movies.map((m) => ({ tmdb_id: m.id, title: m.title, tmdb_vote_avg: Math.round(m.vote_average * 10) / 10 })),
-      { onConflict: 'tmdb_id' },
-    ).select('id,tmdb_id'),
-  );
+  const saved = must(await db.from('movies').select('id,tmdb_id').in('tmdb_id', movies.map((m) => m.id)));
   await saveAvailability(movies, new Map((saved ?? []).map((r) => [r.tmdb_id, r.id])));
+  if (saved?.length) must(await db.from('movies').update({ updated_at: new Date().toISOString() }).in('id', saved.map((r) => r.id)));
   return saved?.length ?? 0;
 }
 
@@ -145,7 +143,7 @@ if (a['refresh-oldest']) {
   const rows = await pageAll<{ tmdb_id: number }>(
     (from, to) => db.from('movies').select('tmdb_id').eq('is_published', true).order('updated_at').order('id').range(from, to), n,
   );
-  console.log(`Refreshing availability for ${rows.length} films (${COUNTRIES.join(', ')})...`);
+  console.log(`Refreshing availability for ${rows.length} films in all TMDB regions...`);
   for (let i = 0; i < rows.length; i += BATCH) {
     added += await refreshBatch(rows.slice(i, i + BATCH).map((r) => r.tmdb_id));
     if ((i / BATCH) % 25 === 0) console.log(`  ${Math.min(i + BATCH, rows.length)}/${rows.length}`);

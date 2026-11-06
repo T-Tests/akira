@@ -2,10 +2,11 @@
 
 Find a family movie in under a minute: one that fits **your** boundaries, nurtures **your** values, and is on **apps you already have**.
 
-## Two tabs: Kids and Adults
+## Kids, Adults and Review
 - **🧒 Kids**: the family finder below, with boundaries and values.
 - **🎬 Adults**: explore cinema. Browse by **era** (silent films to today), **black & white**, **genre**, **themes** and **original language**, from Japanese classics to Bengali drama to Korean thrillers. Content advisories are still shown (and optional to filter on).
-- Each tab remembers its own filters. Your country and streaming apps are shared.
+- **🔍 Review**: browse and vote on films awaiting Kids approval.
+- Each tab remembers its own filters. Streaming apps are shared.
 - Some films suit both and appear in both tabs.
 
 ## World cinema: language is no barrier
@@ -16,17 +17,19 @@ Every card shows the film's original language and country. For non-English films
 2. **Fine-tune** with the **Boundaries & values** button at the bottom:
    - **Max content level sliders**: violence, scary scenes, language, romance/nudity, mature themes, LGBTQ+ themes. Slide left for stricter; "Any" means no limit.
    - **Values to nurture**: resilience, STEM, empathy, teamwork, problem solving, nature, creativity, honesty, inclusion. *Any* = at least one; *All* = every one selected.
-   - **Where I watch**: choose your country and your streaming apps. Only movies on those apps appear.
+   - **Where I watch**: choose your streaming apps. Offers include all available countries, so check the country on the card.
 3. **Read the card, then tap Watch.**
 
 ## Reading a movie card
 - ✨ **Why watch**: two spoiler-free sentences on the positive takeaway.
 - ⚠️ **What to know**: the specific things that may bother your child, with colour-coded flags (green none → red strongest).
 - Purple tags show the values the film nurtures. "Ages N+" is a guide, not a rule: you know your child best.
-- **Watch on …** opens the film's page for your region.
+- **Watch on …** opens the film's page for the country shown; it may not be available where you live.
 
 ## Search any film
-Tap the 🔍 button. Results from our catalogue come first. If a film isn't there, choose **Search TMDB** then **Review with AI**: it is checked by a single AI model within a minute and shown with an **AI-reviewed · unverified** label. Treat that rating with extra care and preview the film yourself.
+Tap the 🔍 button. Results from our catalogue come first. If a film isn't there, choose **Search TMDB** then **Review with AI**. A single AI pass adds it to Adults; Kids-eligible films need community approval before appearing in Kids. Ratings are unverified: preview films yourself.
+
+Open **Review** or **Kids reviews** in search to vote on films you have watched. An email-verified account is needed only for voting, not browsing. Currently a film needs at least five approvals and more approvals than rejections to appear in Kids. Films with more rejections have a separate tab and can still be voted on; their status may change as votes arrive. These votes are not professional age ratings.
 
 ## Layout and dark mode
 - Top right: the grid/list button switches between **detailed cards** and a **compact poster grid** (3 per row on phones, up to 6 on desktop). Tap a poster to see its full card. The dot on a poster shows the film's highest content level (green → red).
@@ -40,7 +43,7 @@ Romance/nudity: none · kissing · suggestive · nudity. Mature themes: none · 
 Try adding another streaming app, loosening one slider or value, renting/buying from your usual store, or borrowing it free through your library (Libby, Kanopy, Hoopla). Not every film is available in every country.
 
 ## Good to know
-- **Free, no account.** Your choices are saved only on your phone.
+- **Free browsing, no account.** Your choices are saved only on your phone. Voting requires an email-verified account.
 - **Install it**: Share/⋮ menu → *Add to Home Screen*.
 - Ratings come from curated data and AI-assisted tagging and can be imperfect. Preview anything for sensitive kids, and tell us about mistakes.
 - Movie data and streaming availability: TMDB / JustWatch.
@@ -48,3 +51,7 @@ Try adding another streaming app, loosening one slider or value, renting/buying 
 <a href="https://www.themoviedb.org"><img src="public/tmdb-logo.svg" alt="TMDB logo" width="140"></a>
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+## Database update for the site owner
+
+The Kids voting and worldwide availability changes require updates to the existing Supabase database; they are not a Zoho migration. Follow [OPERATIONS.md](OPERATIONS.md#rollout) for the exact migration order, backup and staging precautions, Edge Function deployment, and the GitHub Actions variable needed to resume ingestion. Do not deploy the new frontend against the old database.

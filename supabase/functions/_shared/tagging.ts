@@ -47,11 +47,8 @@ export const Tag = z.object({
   takeaway: text(10, 400),
   advisory: text(3, 400),
   recommended_min_age: z.number().int().min(0).max(18),
-  confidence: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1).optional(),
 });
-
-export const STRICT_PREFIX =
-  'You are a strict, safety-first parent reviewer. When unsure, rate the content higher, never lower. Re-rate this film independently.\n\n';
 
 export interface PromptVars {
   title: string; year: string; tmdb_id: string; audience: string;
@@ -92,8 +89,7 @@ Only tag a value if it is clearly depicted. Do not tag generic "friendship" as t
   "notes": { "<category>": "<short specific note>" },
   "values": [ { "slug": "<value>", "strength": 1-3 } ],
   "takeaway": "...", "advisory": "...",
-  "recommended_min_age": <number>,
-  "confidence": 0.0-1.0
+  "recommended_min_age": <number>{{confidence_output}}
 }
 
 ## Input
@@ -105,4 +101,6 @@ Parents guide (IMDb-style, user-supplied; may be empty):
 `;
 
 export const fillPrompt = (v: PromptVars) =>
-  (Object.keys(v) as (keyof PromptVars)[]).reduce((s, k) => s.replace(`{{${k}}}`, () => v[k]), TAGGING_PROMPT);
+  (Object.keys(v) as (keyof PromptVars)[])
+    .reduce((s, k) => s.replace(`{{${k}}}`, () => v[k]), TAGGING_PROMPT)
+    .replace('{{confidence_output}}', v.audience === 'adults' ? '' : ',\n  "confidence": 0.0-1.0');

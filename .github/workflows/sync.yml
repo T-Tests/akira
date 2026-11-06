@@ -12,7 +12,7 @@ permissions:
 jobs:
   sync-country:
     name: Sync ${{ matrix.country }}
-    if: github.event.schedule != '0 4 * * *'
+    if: ${{ vars.AKIRA_COMMUNITY_READY == 'true' && github.event.schedule != '0 4 * * *' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -55,7 +55,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   refresh-availability:
     name: Refresh stalest availability (all countries)
-    if: github.event.schedule != '0 4 * * *'
+    if: ${{ vars.AKIRA_COMMUNITY_READY == 'true' && github.event.schedule != '0 4 * * *' }}
     timeout-minutes: 330
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +74,7 @@ jobs:
   tag-new-drafts:
     name: Tag newly ingested drafts (${{ github.event.schedule == '0 4 * * *' && 'daily' || 'weekly' }})
     needs: [sync-country, refresh-availability]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && vars.AKIRA_COMMUNITY_READY == 'true' }}
     # Weekly runs get a long budget to chew through the backlog; daily runs stay short.
     timeout-minutes: ${{ github.event.schedule == '0 4 * * *' && 60 || 340 }}
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Tag + AI-review a batch of new drafts (auto-publishes only when both passes agree)
+      - name: Tag drafts and publish to Adults
         run: npm run tag -- --limit 1000 --max-minutes ${{ github.event.schedule == '0 4 * * *' && 50 || 300 }} --auto
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -93,6 +93,3 @@ jobs:
           LLM_BASE_URL: https://ollama.com/v1
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: gpt-oss:120b-cloud
-          LLM_AUDIT_BASE_URL: https://ollama.com/v1
-          LLM_AUDIT_API_KEY: ${{ secrets.LLM_AUDIT_API_KEY }}
-          LLM_AUDIT_MODEL: gemma4:cloud

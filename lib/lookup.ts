@@ -1,29 +1,30 @@
 import seed from '@/data/seed.json';
 import { supabase } from './discover';
-import type { MovieResult, TmdbCandidate } from './types';
+import type { Audience, MovieResult, TmdbCandidate } from './types';
 
 /** Search films already in the database (published only). */
-export async function searchLibrary(query: string, country: string): Promise<MovieResult[]> {
+export async function searchLibrary(query: string, audience: Audience): Promise<MovieResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
   if (supabase) {
-    const { data, error } = await supabase.rpc('search_movies', { p_query: q, p_country: country, p_limit: 12 });
+    const { data, error } = await supabase.rpc('search_movies_for_audience', { p_query: q, p_audience: audience, p_limit: 12 });
     if (error) throw error;
     return data as MovieResult[];
   }
   const names = new Map(seed.providers.map((p) => [p.provider_id, p.name]));
   return seed.movies
     .map((m, i) => ({ m, i }))
-    .filter(({ m }) => m.title.toLowerCase().includes(q.toLowerCase()))
+    .filter(({ m }) => m.title.toLowerCase().includes(q.toLowerCase()) && (audience === 'adults' || m.audience === 'kids' || m.audience === 'both'))
     .map(({ m, i }) => ({
       id: i + 1, tmdb_id: m.tmdb_id, title: m.title, release_year: m.release_year, runtime_min: m.runtime_min,
       poster_path: m.poster_path, takeaway: m.takeaway, advisory: m.advisory, recommended_min_age: m.recommended_min_age,
       ...(m.content as any),
       value_slugs: m.values.map((v) => v.slug),
-      providers: ((m.streaming as Record<string, { provider_id: number; type: string }[]>)[country] ?? []).map((o) => ({
-        provider_id: o.provider_id, name: names.get(o.provider_id) ?? String(o.provider_id), type: o.type,
-        link: `https://www.themoviedb.org/movie/${m.tmdb_id}/watch?locale=${country}`,
-      })),
+      providers: Object.entries(m.streaming as Record<string, { provider_id: number; type: string }[]>)
+        .flatMap(([country, offers]) => offers.map((o) => ({
+          provider_id: o.provider_id, name: names.get(o.provider_id) ?? String(o.provider_id), type: o.type, country,
+          link: `https://www.themoviedb.org/movie/${m.tmdb_id}/watch?locale=${country}`,
+        }))),
       original_language: m.original_language, origin_countries: m.origin_countries,
       is_black_and_white: m.is_black_and_white, subtitle_languages: m.subtitle_languages,
       audience: m.audience, value_match_score: 0,

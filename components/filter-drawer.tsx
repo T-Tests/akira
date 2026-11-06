@@ -3,7 +3,7 @@ import { Ghost, HeartOff, CloudRain, MessageSquareWarning, Rainbow, Swords, type
 import { Sheet } from './ui/sheet';
 import { Slider } from './ui/slider';
 import { Button } from './ui/button';
-import { CATEGORIES, COUNTRIES, ERAS, GENRES, LANGUAGES, PROVIDERS, freshFilters, langName, valuesFor } from '@/lib/constants';
+import { CATEGORIES, ERAS, GENRES, LANGUAGES, PROVIDERS, freshFilters, langName, valuesFor } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { Filters, Severity } from '@/lib/types';
 
@@ -126,12 +126,7 @@ export function FilterDrawer({ open, onOpenChange, filters, setFilters, count, m
 
       <section className="mt-8">
         <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Where I watch</h3>
-        <select
-          value={filters.country} onChange={(e) => set({ country: e.target.value })}
-          className="mb-3 min-h-11 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm" aria-label="Country"
-        >
-          {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-        </select>
+        <p className="mb-3 text-xs text-slate-500">Offers are shown worldwide and may not be available in your country.</p>
         <div className="flex flex-wrap gap-2">
           {PROVIDERS.map((p) => (
             <Chip key={p.id} on={filters.providers.includes(p.id)} onClick={() => set({ providers: toggle(filters.providers, p.id) })}>{p.name}</Chip>

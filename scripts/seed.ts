@@ -18,7 +18,7 @@ for (const m of seed.movies) {
     tmdb_vote_avg: m.tmdb_vote_avg, audience: m.audience, original_language: m.original_language,
     origin_countries: m.origin_countries, tmdb_genres: m.tmdb_genres, subtitle_languages: m.subtitle_languages,
     is_black_and_white: m.is_black_and_white, takeaway: m.takeaway, advisory: m.advisory,
-    review_status: 'human_verified', is_published: true,
+    review_status: 'human_verified', is_published: true, kids_status: m.audience === 'adults' ? 'pending' : 'legacy',
   }, { onConflict: 'tmdb_id' }).select('id').single());
 
   must(await db.from('content_warnings').upsert({ movie_id: row.id, ...m.content, source: 'curated', confidence: 1 }));

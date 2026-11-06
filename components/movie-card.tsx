@@ -39,7 +39,7 @@ export function MovieCard({ m }: { m: MovieResult }) {
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
             {m.providers.map((p) => (
-              <Badge key={p.provider_id + p.type} className="bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-100"><Tv className="h-3 w-3" />{p.name}{p.type === 'ads' ? ' (ads)' : p.type === 'free' ? ' (free)' : ''}</Badge>
+              <Badge key={`${p.provider_id}-${p.type}-${p.country ?? ''}`} className="bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-100"><Tv className="h-3 w-3" />{p.name}{p.country ? ` · ${countryName(p.country)}` : ''}{p.type === 'ads' ? ' (ads)' : p.type === 'free' ? ' (free)' : ''}</Badge>
             ))}
           </div>
         </div>
@@ -80,12 +80,12 @@ export function MovieCard({ m }: { m: MovieResult }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-1">
-          {m.value_slugs.slice(0, 4).map((s) => <Badge key={s} className="bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200">{valueLabel(s)}</Badge>)}
+          {(m.value_slugs ?? []).slice(0, 4).map((s) => <Badge key={s} className="bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200">{valueLabel(s)}</Badge>)}
         </div>
         {watch?.link && (
           <a href={watch.link} target="_blank" rel="noopener noreferrer"
             className="mt-auto flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 font-semibold text-white active:scale-[.98]">
-            Watch on {watch.name} <ExternalLink className="h-4 w-4" />
+            Watch on {watch.name}{watch.country ? ` (${countryName(watch.country)})` : ''} <ExternalLink className="h-4 w-4" />
           </a>
         )}
       </div>

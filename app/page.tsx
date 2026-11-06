@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FilterDrawer } from '@/components/filter-drawer';
 import { MovieCard } from '@/components/movie-card';
 import { MovieTile } from '@/components/movie-tile';
-import { ReviewPanel } from '@/components/review-panel';
+import { KidsReview } from '@/components/kids-review';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PRESETS, detectCountry, freshFilters } from '@/lib/constants';
 import { discover, usingMock, PAGE_SIZE } from '@/lib/discover';
@@ -35,7 +35,6 @@ export default function Home() {
       };
     });
   const [reviewing, setReviewing] = useState(false);
-  const [refresh, setRefresh] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -55,6 +54,9 @@ export default function Home() {
       } else setState(initial(detectCountry()));
     } catch {}
     if (localStorage.getItem(VIEW_KEY) === 'grid') setView('grid');
+    if (new URLSearchParams(window.location.search).get('review') === 'kids') {
+      setReviewing(true);
+    }
     setHydrated(true);
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') navigator.serviceWorker.register('/sw.js');
   }, []);
@@ -68,7 +70,7 @@ export default function Home() {
       discover(state[state.audience]).then((r) => { if (stale) return; setMovies(r.movies); setHasMore(r.hasMore); }).catch((e) => !stale && setError(e.message));
     }, 150);
     return () => { stale = true; clearTimeout(t); };
-  }, [state, hydrated, refresh]);
+  }, [state, hydrated]);
 
   const loadMore = async () => {
     if (!movies || loadingMore) return;
@@ -139,16 +141,17 @@ export default function Home() {
         </div>}
       </header>
 
-      {reviewing && <ReviewPanel onChanged={() => setRefresh((n) => n + 1)} />}
+      {reviewing && <div className="px-4 pt-4 md:px-6"><KidsReview /></div>}
       <section hidden={reviewing} className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
         {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 10 sample films. Connect Supabase for the full catalogue.</p>}
+        {audience === 'kids' && <p className="col-span-full text-xs text-slate-500">AI tags and community votes can be wrong. Check content and preview films for your child.</p>}
         {error && <p className="col-span-full rounded-lg bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200">Couldn&apos;t load movies: {error}</p>}
         {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
         {movies?.length === 0 && (
           <div className="col-span-full mx-auto w-full max-w-xl rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-6 text-center">
             <SearchX className="mx-auto h-8 w-8 text-slate-400" />
             <h2 className="mt-2 font-bold">Nothing matches on your apps</h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Titles can be unavailable in your region or on your services. You could:</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Titles may not match your selected services. You could:</p>
             <ul className="mx-auto mt-2 max-w-xs list-disc pl-5 text-left text-sm text-slate-600 dark:text-slate-300">
               <li>Add another streaming service you have</li>
               <li>Loosen a content slider, language, era or theme filter</li>
@@ -190,7 +193,12 @@ export default function Home() {
       </div>}
 
       <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} more={hasMore} />
-      {searching && <SearchPanel country={filters.country} onClose={() => setSearching(false)} />}
+      {searching && <SearchPanel audience={audience} onClose={() => {
+        setSearching(false);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('review');
+        window.history.replaceState(null, '', url);
+      }} />}
     </main>
   );
 }
