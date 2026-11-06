@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import seed from '@/data/seed.json';
-import { ERAS } from './constants';
+import { ERAS, dedupeProviders, getOttWatchUrl } from './constants';
 import type { Filters, MovieResult } from './types';
 
 const eraOf = (id: string | null) => ERAS.find((e) => e.id === id);
@@ -76,10 +76,10 @@ function mockDiscover(f: Filters): MovieResult[] {
       poster_path: m.poster_path, takeaway: m.takeaway, advisory: m.advisory, recommended_min_age: m.recommended_min_age,
       ...(c as any),
       value_slugs: [...m.values].sort((a, b) => b.strength - a.strength).map((v) => v.slug),
-      providers: offers.map((o) => ({
+      providers: dedupeProviders(offers.map((o) => ({
         provider_id: o.provider_id, name: names.get(o.provider_id) ?? String(o.provider_id), type: o.type, country: o.country,
-        link: `https://www.themoviedb.org/movie/${m.tmdb_id}/watch?locale=${o.country}`,
-      })),
+        link: getOttWatchUrl(o.provider_id, names.get(o.provider_id) ?? String(o.provider_id), m.title),
+      }))),
       original_language: lang, origin_countries: m.origin_countries, is_black_and_white: m.is_black_and_white,
       subtitle_languages: m.subtitle_languages, audience: m.audience,
       value_match_score: mine.reduce((s, v) => s + v.strength, 0),

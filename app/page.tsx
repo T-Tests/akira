@@ -141,50 +141,53 @@ export default function Home() {
         </div>}
       </header>
 
-      {reviewing && <div className="px-4 pt-4 md:px-6"><KidsReview /></div>}
-      <section hidden={reviewing} className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
-        {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 10 sample films. Connect Supabase for the full catalogue.</p>}
-        {audience === 'kids' && <p className="col-span-full text-xs text-slate-500">AI tags and community votes can be wrong. Check content and preview films for your child.</p>}
-        {error && <p className="col-span-full rounded-lg bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200">Couldn&apos;t load movies: {error}</p>}
-        {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
-        {movies?.length === 0 && (
-          <div className="col-span-full mx-auto w-full max-w-xl rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-6 text-center">
-            <SearchX className="mx-auto h-8 w-8 text-slate-400" />
-            <h2 className="mt-2 font-bold">Nothing matches on your apps</h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Titles may not match your selected services. You could:</p>
-            <ul className="mx-auto mt-2 max-w-xs list-disc pl-5 text-left text-sm text-slate-600 dark:text-slate-300">
-              <li>Add another streaming service you have</li>
-              <li>Loosen a content slider, language, era or theme filter</li>
-              <li>Check legal rent/buy options on your platform's store</li>
-              <li>Borrow it free from a local library (Libby, Kanopy, Hoopla)</li>
-            </ul>
-            <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>Adjust filters</Button>
-          </div>
-        )}
-        {movies?.map((m) => (view === 'grid' ? <MovieTile key={m.id} m={m} /> : <MovieCard key={m.id} m={m} />))}
-        {hasMore && (
-          <div className="col-span-full flex justify-center pt-2">
-            <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : `Show ${PAGE_SIZE} more`}
-            </Button>
-          </div>
-        )}
-        {process.env.NEXT_PUBLIC_REPORT_URL && (
-          <p className="col-span-full pt-2 text-center text-xs">
-            <a className="text-brand-700 dark:text-brand-100 underline" href={process.env.NEXT_PUBLIC_REPORT_URL} target="_blank" rel="noopener noreferrer">
-              Report a wrong rating
+      {reviewing ? (
+        <div className="px-4 pt-4 md:px-6"><KidsReview /></div>
+      ) : (
+        <section className={cn('grid gap-4 px-4 pt-4 md:px-6', view === 'grid' ? 'grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3')} aria-live="polite">
+          {usingMock && <p className="col-span-full rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">Demo mode: showing 10 sample films. Connect Supabase for the full catalogue.</p>}
+          {audience === 'kids' && <p className="col-span-full text-xs text-slate-500">AI tags and community votes can be wrong. Check content and preview films for your child.</p>}
+          {error && <p className="col-span-full rounded-lg bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200">Couldn&apos;t load movies: {error}</p>}
+          {movies === null && !error && <div className="col-span-full flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-600" /></div>}
+          {movies?.length === 0 && (
+            <div className="col-span-full mx-auto w-full max-w-xl rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-6 text-center">
+              <SearchX className="mx-auto h-8 w-8 text-slate-400" />
+              <h2 className="mt-2 font-bold">Nothing matches on your apps</h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Titles may not match your selected services. You could:</p>
+              <ul className="mx-auto mt-2 max-w-xs list-disc pl-5 text-left text-sm text-slate-600 dark:text-slate-300">
+                <li>Add another streaming service you have</li>
+                <li>Loosen a content slider, language, era or theme filter</li>
+                <li>Check legal rent/buy options on your platform's store</li>
+                <li>Borrow it free from a local library (Libby, Kanopy, Hoopla)</li>
+              </ul>
+              <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>Adjust filters</Button>
+            </div>
+          )}
+          {movies?.map((m) => (view === 'grid' ? <MovieTile key={m.id} m={m} /> : <MovieCard key={m.id} m={m} />))}
+          {hasMore && (
+            <div className="col-span-full flex justify-center pt-2">
+              <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : `Show ${PAGE_SIZE} more`}
+              </Button>
+            </div>
+          )}
+          {process.env.NEXT_PUBLIC_REPORT_URL && (
+            <p className="col-span-full pt-2 text-center text-xs">
+              <a className="text-brand-700 dark:text-brand-100 underline" href={process.env.NEXT_PUBLIC_REPORT_URL} target="_blank" rel="noopener noreferrer">
+                Report a wrong rating
+              </a>
+            </p>
+          )}
+          <div className="col-span-full flex flex-col items-center gap-2 pt-4 text-center text-[11px] text-slate-400">
+            <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">
+              <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" className="h-3" />
             </a>
-          </p>
-        )}
-        <div className="col-span-full flex flex-col items-center gap-2 pt-4 text-center text-[11px] text-slate-400">
-          <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">
-            <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" className="h-3" />
-          </a>
-          <p>
-            Movie data and streaming availability from TMDB / JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.
-          </p>
-        </div>
-      </section>
+            <p>
+              Movie data and streaming availability from TMDB / JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.
+            </p>
+          </div>
+        </section>
+      )}
 
       {!reviewing && <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
         <Button className="mx-auto flex w-full max-w-xl shadow-lg md:max-w-sm" onClick={() => setOpen(true)}>

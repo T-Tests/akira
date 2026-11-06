@@ -1,5 +1,6 @@
 import seed from '@/data/seed.json';
 import { supabase } from './discover';
+import { dedupeProviders, getOttWatchUrl } from './constants';
 import type { Audience, MovieResult, TmdbCandidate } from './types';
 
 /** Search films already in the database (published only). */
@@ -20,11 +21,11 @@ export async function searchLibrary(query: string, audience: Audience): Promise<
       poster_path: m.poster_path, takeaway: m.takeaway, advisory: m.advisory, recommended_min_age: m.recommended_min_age,
       ...(m.content as any),
       value_slugs: m.values.map((v) => v.slug),
-      providers: Object.entries(m.streaming as Record<string, { provider_id: number; type: string }[]>)
+      providers: dedupeProviders(Object.entries(m.streaming as Record<string, { provider_id: number; type: string }[]>)
         .flatMap(([country, offers]) => offers.map((o) => ({
           provider_id: o.provider_id, name: names.get(o.provider_id) ?? String(o.provider_id), type: o.type, country,
-          link: `https://www.themoviedb.org/movie/${m.tmdb_id}/watch?locale=${country}`,
-        }))),
+          link: getOttWatchUrl(o.provider_id, names.get(o.provider_id) ?? String(o.provider_id), m.title),
+        })))),
       original_language: m.original_language, origin_countries: m.origin_countries,
       is_black_and_white: m.is_black_and_white, subtitle_languages: m.subtitle_languages,
       audience: m.audience, value_match_score: 0,

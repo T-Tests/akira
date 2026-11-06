@@ -1,4 +1,4 @@
-import type { Audience, CategoryKey, Filters, Limits } from './types';
+import type { Audience, CategoryKey, Filters, Limits, Offer } from './types';
 
 export const CATEGORIES: { key: CategoryKey; label: string; icon: string; levels: string[] }[] = [
   { key: 'violence', label: 'Violence', icon: 'Swords', levels: ['None', 'Slapstick', 'Mild', 'Realistic'] },
@@ -67,6 +67,42 @@ export const PROVIDERS: { id: number; name: string }[] = [
   { id: 258, name: 'Criterion Channel' },
   { id: 191, name: 'Kanopy' },
 ];
+
+/** Deduplicate streaming offers so each OTT provider appears only once, preferring flatrate over ads/free. */
+export function dedupeProviders(offers: Offer[]): Offer[] {
+  const map = new Map<number, Offer>();
+  for (const o of offers) {
+    const existing = map.get(o.provider_id);
+    if (!existing) {
+      map.set(o.provider_id, o);
+    } else if (existing.type !== 'flatrate' && o.type === 'flatrate') {
+      map.set(o.provider_id, o);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/** Direct link to the movie on the respective OTT platform search/watch page instead of TMDB. */
+export function getOttWatchUrl(providerId: number, providerName: string, title: string): string {
+  const norm = providerName.toLowerCase();
+  const q = encodeURIComponent(title);
+  if (providerId === 8 || norm.includes('netflix')) return `https://www.netflix.com/search?q=${q}`;
+  if (providerId === 119 || norm.includes('prime')) return `https://www.primevideo.com/search/?phrase=${q}`;
+  if (providerId === 122 || norm.includes('hotstar')) return `https://www.hotstar.com/search?q=${q}`;
+  if (providerId === 337 || norm.includes('disney')) return `https://www.disneyplus.com/search?q=${q}`;
+  if (providerId === 1899 || norm.includes('max')) return `https://play.max.com/search?q=${q}`;
+  if (providerId === 350 || norm.includes('apple')) return `https://tv.apple.com/search?term=${q}`;
+  if (providerId === 11 || norm.includes('mubi')) return `https://mubi.com/search?query=${q}`;
+  if (providerId === 258 || norm.includes('criterion')) return `https://www.criterionchannel.com/search?q=${q}`;
+  if (providerId === 191 || norm.includes('kanopy')) return `https://www.kanopy.com/search?query=${q}`;
+  if (providerId === 15 || norm.includes('hulu')) return `https://www.hulu.com/search?q=${q}`;
+  if (providerId === 531 || norm.includes('paramount')) return `https://www.paramountplus.com/search/?q=${q}`;
+  if (providerId === 386 || providerId === 387 || norm.includes('peacock')) return `https://www.peacocktv.com/search?q=${q}`;
+  if (providerId === 232 || norm.includes('zee5')) return `https://www.zee5.com/search?q=${q}`;
+  if (providerId === 237 || norm.includes('sonyliv')) return `https://www.sonyliv.com/search?query=${q}`;
+  if (providerId === 220 || norm.includes('jiocinema')) return `https://www.jiocinema.com/search/${q}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} on ${providerName}`)}`;
+}
 
 export const COUNTRIES: { code: string; name: string }[] = [
   { code: 'IN', name: 'India' }, { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },

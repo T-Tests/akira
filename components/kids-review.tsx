@@ -11,6 +11,42 @@ type ReviewMovie = {
 
 const PAGE_SIZE = 30;
 
+function ReviewMovieItem({ m, busy, vote }: { m: ReviewMovie; busy: boolean; vote: (id: number, approved: boolean) => void }) {
+  const [imgOk, setImgOk] = useState(true);
+  return (
+    <li className="flex gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-sm">
+      <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700">
+        {imgOk && m.poster_path ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
+            alt={`${m.title} poster`}
+            loading="lazy"
+            onError={() => setImgOk(false)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-1 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            {m.title}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold">{m.title} {m.release_year && `(${m.release_year})`}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">{m.advisory ?? 'No advisory available.'}</p>
+        <a className="text-sm underline text-brand-700 dark:text-brand-300" href={`https://www.themoviedb.org/movie/${m.tmdb_id}`}
+          target="_blank" rel="noopener noreferrer">Film details and where to watch</a>
+        <p className="my-2 text-sm text-slate-600 dark:text-slate-400">{m.approvals} approve · {m.rejections} reject
+          {m.my_vote !== null && ` · Your vote: ${m.my_vote ? 'approve' : 'reject'}`}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={busy} onClick={() => vote(m.id, true)}>Approve for Kids</Button>
+          <Button variant="outline" disabled={busy} onClick={() => vote(m.id, false)}>Not suitable</Button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export function KidsReview() {
   const [tab, setTab] = useState<'pending' | 'rejected' | 'approved'>('pending');
   const [movies, setMovies] = useState<ReviewMovie[]>([]);
@@ -119,18 +155,7 @@ export function KidsReview() {
       {loading ? <p className="text-sm">Loading reviews…</p> : movies.length === 0 && <p className="text-sm">No films in this category.</p>}
       <ul className="space-y-3">
         {movies.map((m) => (
-          <li key={m.id} className="rounded-xl border p-3">
-            <p className="font-bold">{m.title} {m.release_year && `(${m.release_year})`}</p>
-            <p className="text-sm">{m.advisory ?? 'No advisory available.'}</p>
-            <a className="text-sm underline" href={`https://www.themoviedb.org/movie/${m.tmdb_id}`}
-              target="_blank" rel="noopener noreferrer">Film details and where to watch</a>
-            <p className="my-2 text-sm">{m.approvals} approve · {m.rejections} reject
-              {m.my_vote !== null && ` · Your vote: ${m.my_vote ? 'approve' : 'reject'}`}</p>
-            <div className="flex gap-2">
-              <Button disabled={busy} onClick={() => vote(m.id, true)}>Approve for Kids</Button>
-              <Button variant="outline" disabled={busy} onClick={() => vote(m.id, false)}>Not suitable</Button>
-            </div>
-          </li>
+          <ReviewMovieItem key={m.id} m={m} busy={busy} vote={vote} />
         ))}
       </ul>
       <div className="flex gap-2">

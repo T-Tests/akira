@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Sheet } from './ui/sheet';
 import { MovieCard } from './movie-card';
-import { langName } from '@/lib/constants';
+import { dedupeProviders, langName } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { MovieResult } from '@/lib/types';
 
@@ -13,6 +13,7 @@ const DOT = ['bg-emerald-500', 'bg-lime-500', 'bg-amber-500', 'bg-rose-500'];
 export function MovieTile({ m }: { m: MovieResult }) {
   const [open, setOpen] = useState(false);
   const [imgOk, setImgOk] = useState(true);
+  const uniqueProviders = dedupeProviders(m.providers);
   return (
     <>
       <button onClick={() => setOpen(true)} className="group text-left" aria-label={`${m.title}, details`}>
@@ -28,7 +29,7 @@ export function MovieTile({ m }: { m: MovieResult }) {
         </div>
         <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{m.title}</p>
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          {m.recommended_min_age != null ? `${m.recommended_min_age}+ · ` : ''}{m.original_language && m.original_language !== 'en' ? `${langName(m.original_language)} · ` : ''}{m.is_black_and_white ? 'B&W · ' : ''}{m.providers[0]?.name}
+          {m.recommended_min_age != null ? `${m.recommended_min_age}+ · ` : ''}{m.original_language && m.original_language !== 'en' ? `${langName(m.original_language)} · ` : ''}{m.is_black_and_white ? 'B&W · ' : ''}{uniqueProviders[0]?.name}
         </p>
       </button>
       <Sheet open={open} onOpenChange={setOpen} title={m.title}>
