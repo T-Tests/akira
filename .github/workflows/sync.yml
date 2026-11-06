@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   sync-country:
-    name: Sync ${{ matrix.country }}
+    name: "Sync ${{ matrix['country'] }}"
     if: ${{ vars.AKIRA_COMMUNITY_READY == 'true' && github.event.schedule != '0 4 * * *' }}
     runs-on: ubuntu-latest
     strategy:
