@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   ingest:
-    name: Ingest ${{ matrix.from }}-${{ matrix.to }}
+    name: "Ingest ${{ matrix['from'] }}-${{ matrix['to'] }}"
     if: ${{ vars.AKIRA_COMMUNITY_READY == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 330
