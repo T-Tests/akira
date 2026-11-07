@@ -53,6 +53,8 @@ export function KidsReview() {
   const [offset, setOffset] = useState(0);
   const [more, setMore] = useState(false);
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,27 @@ export function KidsReview() {
   useEffect(() => {
     if (!supabase) return;
     let active = true;
+
+    // Handle PKCE code exchange if redirected from magic link
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      setBusy(true);
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+        if (!active) return;
+        setBusy(false);
+        if (error) {
+          setMessage(`Sign-in link error: ${error.message}`);
+        } else if (data.session) {
+          setSignedIn(true);
+          setMessage('Signed in successfully!');
+          const url = new URL(window.location.href);
+          url.searchParams.delete('code');
+          window.history.replaceState(null, '', url);
+        }
+      });
+    }
+
     supabase.auth.getSession().then(({ data, error }) => {
       if (active && error) setMessage(error.message);
       if (active) setSignedIn(!!data.session);
@@ -102,10 +125,35 @@ export function KidsReview() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(), options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}?review=kids` },
       });
-      if (error) throw error;
-      setMessage('Check your email for a sign-in link. Email verification is required to vote.');
+      if (error) {
+        if (error.message?.includes('confirmation email') || (error as any).status === 500) {
+          throw new Error('Supabase email service failed to send the email (500). Please ensure Custom SMTP is enabled and configured in your Supabase Dashboard (Authentication -> Email Settings / SMTP).');
+        }
+        throw error;
+      }
+      setOtpSent(true);
+      setMessage('Check your email for a sign-in link or verification code. You can enter the code below or click the link.');
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Could not send the sign-in link.');
+    } finally { setBusy(false); }
+  };
+
+  const verifyCode = async () => {
+    if (!supabase || !otp.trim() || !email.trim()) return;
+    setBusy(true); setMessage(null);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(), token: otp.trim(), type: 'email',
+      });
+      if (error) throw error;
+      if (data.session) {
+        setSignedIn(true);
+        setOtpSent(false);
+        setOtp('');
+        setMessage('Signed in successfully!');
+      }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Invalid code.');
     } finally { setBusy(false); }
   };
 
@@ -131,16 +179,29 @@ export function KidsReview() {
         A film can move between categories as votes change.
       </p>
       {signedIn ? (
-        <Button variant="outline" disabled={busy} onClick={async () => {
-          const { error } = await client.auth.signOut();
-          if (error) setMessage(error.message);
-        }}>Sign out</Button>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Signed in</span>
+          <Button variant="outline" disabled={busy} onClick={async () => {
+            const { error } = await client.auth.signOut();
+            if (error) setMessage(error.message);
+          }}>Sign out</Button>
+        </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          <label className="sr-only" htmlFor="review-email">Email for voting</label>
-          <input id="review-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email for voting" className="min-h-11 flex-1 rounded-xl border bg-transparent px-3" />
-          <Button disabled={busy || !email.trim()} onClick={sendLink}>Email sign-in link</Button>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <label className="sr-only" htmlFor="review-email">Email for voting</label>
+            <input id="review-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email for voting" className="min-h-11 flex-1 rounded-xl border bg-transparent px-3" />
+            <Button disabled={busy || !email.trim()} onClick={sendLink}>Send sign-in link / code</Button>
+          </div>
+          {otpSent && (
+            <div className="flex flex-wrap gap-2">
+              <label className="sr-only" htmlFor="review-otp">Verification code</label>
+              <input id="review-otp" type="text" value={otp} onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter 6-8 digit code from email" className="min-h-11 flex-1 rounded-xl border bg-transparent px-3" />
+              <Button disabled={busy || !otp.trim()} onClick={verifyCode}>Verify code</Button>
+            </div>
+          )}
         </div>
       )}
       {message && <p role="status" className="text-sm">{message}</p>}
