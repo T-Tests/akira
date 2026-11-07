@@ -11,7 +11,7 @@ export const usingMock = !url || !anon;
 export const supabase = usingMock ? null : createClient(url!, anon!);
 
 /** One RPC per search when Supabase is configured; otherwise filters bundled seed data locally. */
-export const PAGE_SIZE = 24;
+export const PAGE_SIZE = 48;
 
 /** Returns one page plus whether more exist (fetches PAGE_SIZE + 1 rows to know). */
 export async function discover(f: Filters, offset = 0): Promise<{ movies: MovieResult[]; hasMore: boolean }> {

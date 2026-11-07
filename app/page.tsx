@@ -62,7 +62,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || reviewing) return;
     localStorage.setItem(KEY, JSON.stringify(state));
     let stale = false;
     setError(null);
@@ -70,7 +70,7 @@ export default function Home() {
       discover(state[state.audience]).then((r) => { if (stale) return; setMovies(r.movies); setHasMore(r.hasMore); }).catch((e) => !stale && setError(e.message));
     }, 150);
     return () => { stale = true; clearTimeout(t); };
-  }, [state, hydrated]);
+  }, [state, hydrated, reviewing]);
 
   const loadMore = async () => {
     if (!movies || loadingMore) return;
