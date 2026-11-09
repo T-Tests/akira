@@ -51,7 +51,3 @@ Try adding another streaming app, loosening one slider or value, renting/buying 
 <a href="https://www.themoviedb.org"><img src="public/tmdb-logo.svg" alt="TMDB logo" width="140"></a>
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
-
-## Database update for the site owner
-
-The Kids voting and worldwide availability changes require updates to the existing Supabase database; they are not a Zoho migration. Follow [OPERATIONS.md](OPERATIONS.md#rollout) for the exact migration order, backup and staging precautions, Edge Function deployment, and the GitHub Actions variable needed to resume ingestion. Do not deploy the new frontend against the old database.
