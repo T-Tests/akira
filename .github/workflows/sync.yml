@@ -86,10 +86,10 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Tag drafts and publish to Adults
-        run: npm run tag -- --limit 1000 --max-minutes ${{ github.event.schedule == '0 4 * * *' && 50 || 300 }} --auto
+        run: npm run tag -- --limit 500 --max-minutes ${{ github.event.schedule == '0 4 * * *' && 50 || 300 }} --auto
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          LLM_BASE_URL: https://openrouter.ai/api/v1
+          LLM_BASE_URL: https://ollama.com/v1
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_MODEL: nvidia/nemotron-3-ultra-550b-a55b:free
+          LLM_MODEL: gpt-oss:120b
