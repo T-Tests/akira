@@ -46,3 +46,27 @@ assert.match(tileHtml, /Netflix/);
 assert.doesNotMatch(tileHtml, /India/);
 assert.doesNotMatch(tileHtml, /United States/);
 assert.doesNotMatch(tileHtml, /United Kingdom/);
+
+// Filter out buy/rent and deduplicate multiple providers to match normal tile/cards view
+const noisyProvidersMovie: MovieResult = {
+  ...movie,
+  title: 'Inside Out',
+  providers: [
+    { provider_id: 10, name: 'Amazon Video', type: 'buy', country: 'AU', link: null },
+    { provider_id: 2, name: 'Apple TV Store', type: 'buy', country: 'CA', link: null },
+    { provider_id: 192, name: 'YouTube', type: 'buy', country: 'US', link: null },
+    { provider_id: 337, name: 'Disney Plus', type: 'flatrate', country: 'US', link: null },
+    { provider_id: 122, name: 'Disney+', type: 'flatrate', country: 'MY', link: null },
+    { provider_id: 1986, name: 'NPO Plus', type: 'flatrate', country: 'NL', link: null },
+    { provider_id: 117, name: 'Kinopoisk', type: 'flatrate', country: 'RU', link: null },
+  ],
+};
+const noisyCardHtml = renderToStaticMarkup(React.createElement(MovieCard, { m: noisyProvidersMovie }));
+// Buy/rent services should NOT appear as OTT badges
+assert.doesNotMatch(noisyCardHtml, /Apple TV Store/);
+assert.doesNotMatch(noisyCardHtml, /YouTube/);
+// Disney+ should be canonicalized and shown cleanly
+assert.match(noisyCardHtml, /Disney\+/);
+// Should not flood with more than 2 badges
+const tvBadges = noisyCardHtml.match(/lucide-tv/g);
+assert.ok(tvBadges && tvBadges.length <= 2, `Expected at most 2 TV badges, got ${tvBadges?.length}`);

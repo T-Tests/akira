@@ -22,10 +22,12 @@ const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 });
 
 async function tmdb(path: string, params: Record<string, string> = {}) {
+  const token = Deno.env.get('TMDB_READ_TOKEN');
+  if (!token) throw new Error('TMDB_READ_TOKEN secret is not configured in Supabase Edge Functions.');
   const url = new URL(`https://api.themoviedb.org/3${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${Deno.env.get('TMDB_READ_TOKEN')}` } });
-  if (!res.ok) throw new Error(`TMDB ${res.status}`);
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`TMDB error (${res.status}): ${await res.text().catch(() => res.statusText)}`);
   return await res.json();
 }
 
@@ -164,6 +166,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Send { query } or { tmdb_id }.' }, 400);
   } catch (e) {
     console.error(e);
-    return json({ error: 'Lookup failed. Please try again.' }, 500);
+    const msg = (e as Error)?.message || 'Lookup failed. Please try again.';
+    return json({ error: msg }, 500);
   }
 });

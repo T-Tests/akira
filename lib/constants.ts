@@ -68,18 +68,107 @@ export const PROVIDERS: { id: number; name: string }[] = [
   { id: 191, name: 'Kanopy' },
 ];
 
-/** Deduplicate streaming offers so each OTT provider appears only once, preferring flatrate over ads/free. */
-export function dedupeProviders(offers: Offer[]): Offer[] {
-  const map = new Map<number, Offer>();
-  for (const o of offers) {
-    const existing = map.get(o.provider_id);
+const OTT_TYPES = new Set(['flatrate', 'free', 'ads']);
+
+export function cleanProviderName(providerId: number, name: string): string {
+  const norm = name.toLowerCase();
+  if (providerId === 8 || norm.includes('netflix')) return 'Netflix';
+  if (providerId === 119 || providerId === 2100 || norm.includes('prime video') || norm.includes('amazon prime')) return 'Prime Video';
+  if (providerId === 122 || norm.includes('hotstar')) return 'Disney+ Hotstar';
+  if (providerId === 337 || norm.includes('disney')) return 'Disney+';
+  if (providerId === 1899 || providerId === 1825 || providerId === 2284 || norm.includes('max') || norm.includes('hbo')) return 'Max';
+  if (providerId === 350 || norm.includes('apple tv')) return 'Apple TV+';
+  if (providerId === 11 || norm.includes('mubi')) return 'MUBI';
+  if (providerId === 258 || norm.includes('criterion')) return 'Criterion Channel';
+  if (providerId === 191 || norm.includes('kanopy')) return 'Kanopy';
+  if (providerId === 15 || norm.includes('hulu')) return 'Hulu';
+  if (providerId === 531 || norm.includes('paramount')) return 'Paramount+';
+  if (providerId === 386 || providerId === 387 || norm.includes('peacock')) return 'Peacock';
+  if (providerId === 73 || norm.includes('tubi')) return 'Tubi TV';
+  if (providerId === 300 || norm.includes('pluto')) return 'Pluto TV';
+  if (providerId === 232 || norm.includes('zee5')) return 'Zee5';
+  if (providerId === 237 || norm.includes('sonyliv')) return 'SonyLIV';
+  if (providerId === 220 || norm.includes('jiocinema')) return 'JioCinema';
+  return name;
+}
+
+export function canonicalProviderKey(providerId: number, name: string): string {
+  const norm = name.toLowerCase();
+  if (providerId === 8 || norm.includes('netflix')) return 'netflix';
+  if (providerId === 119 || providerId === 2100 || norm.includes('prime video') || norm.includes('amazon prime')) return 'prime';
+  if (providerId === 122 || norm.includes('hotstar')) return 'hotstar';
+  if (providerId === 337 || norm.includes('disney')) return 'disney';
+  if (providerId === 1899 || providerId === 1825 || providerId === 2284 || norm.includes('max') || norm.includes('hbo')) return 'max';
+  if (providerId === 350 || norm.includes('apple tv')) return 'appletv';
+  if (providerId === 11 || norm.includes('mubi')) return 'mubi';
+  if (providerId === 258 || norm.includes('criterion')) return 'criterion';
+  if (providerId === 191 || norm.includes('kanopy')) return 'kanopy';
+  if (providerId === 15 || norm.includes('hulu')) return 'hulu';
+  if (providerId === 531 || norm.includes('paramount')) return 'paramount';
+  if (providerId === 386 || providerId === 387 || norm.includes('peacock')) return 'peacock';
+  if (providerId === 73 || norm.includes('tubi')) return 'tubi';
+  if (providerId === 300 || norm.includes('pluto')) return 'pluto';
+  if (providerId === 232 || norm.includes('zee5')) return 'zee5';
+  if (providerId === 237 || norm.includes('sonyliv')) return 'sonyliv';
+  if (providerId === 220 || norm.includes('jiocinema')) return 'jiocinema';
+  return `${providerId}-${norm}`;
+}
+
+/** Deduplicate streaming offers so each OTT provider appears only once, preferring flatrate over ads/free, and filtering non-streaming offers. */
+export function dedupeProviders(offers: Offer[], userProviders?: number[]): Offer[] {
+  if (!offers || !offers.length) return [];
+
+  // Filter out buy/rent offers - keep only OTT streaming options
+  const streaming = offers.filter((o) => !o.type || OTT_TYPES.has(o.type));
+  const pool = streaming.length > 0 ? streaming : offers;
+
+  const map = new Map<string, Offer>();
+  for (const o of pool) {
+    const key = canonicalProviderKey(o.provider_id, o.name);
+    const cleanName = cleanProviderName(o.provider_id, o.name);
+    const existing = map.get(key);
+    const candidate: Offer = {
+      ...o,
+      name: cleanName,
+      link: o.link || getOttWatchUrl(o.provider_id, cleanName, ''),
+    };
+
     if (!existing) {
-      map.set(o.provider_id, o);
-    } else if (existing.type !== 'flatrate' && o.type === 'flatrate') {
-      map.set(o.provider_id, o);
+      map.set(key, candidate);
+    } else if (existing.type !== 'flatrate' && candidate.type === 'flatrate') {
+      map.set(key, candidate);
     }
   }
-  return Array.from(map.values());
+
+  const unique = Array.from(map.values());
+
+  // If user has specific streaming services selected, prioritize them
+  if (userProviders && userProviders.length > 0) {
+    const userKeys = new Set(
+      userProviders.map((id) => {
+        const found = PROVIDERS.find((p) => p.id === id);
+        return canonicalProviderKey(id, found?.name ?? '');
+      })
+    );
+    const matched = unique.filter((o) => userKeys.has(canonicalProviderKey(o.provider_id, o.name)));
+    if (matched.length > 0) {
+      return matched;
+    }
+  }
+
+  // Prioritize well-known OTT services and flatrate streaming
+  const knownKeys = new Set(PROVIDERS.map((p) => canonicalProviderKey(p.id, p.name)));
+  unique.sort((a, b) => {
+    const aKnown = knownKeys.has(canonicalProviderKey(a.provider_id, a.name)) ? 1 : 0;
+    const bKnown = knownKeys.has(canonicalProviderKey(b.provider_id, b.name)) ? 1 : 0;
+    if (aKnown !== bKnown) return bKnown - aKnown;
+    if (a.type === 'flatrate' && b.type !== 'flatrate') return -1;
+    if (b.type === 'flatrate' && a.type !== 'flatrate') return 1;
+    return 0;
+  });
+
+  // Keep at most 2 primary OTT options to match normal cards/tile view
+  return unique.slice(0, 2);
 }
 
 /** Direct link to the movie on the respective OTT platform search/watch page instead of TMDB. */

@@ -1,15 +1,29 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Loader2, Search, X } from 'lucide-react';
+import { LayoutGrid, List, Loader2, Search, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { MovieCard } from './movie-card';
+import { MovieTile } from './movie-tile';
 import { KidsReview } from './kids-review';
 import { addFromTmdb, searchLibrary, searchTmdb } from '@/lib/lookup';
 import { usingMock } from '@/lib/discover';
 import type { Audience, MovieResult, TmdbCandidate } from '@/lib/types';
 
-export function SearchPanel({ audience, initialReview = false, onClose }: { audience: Audience; initialReview?: boolean; onClose: () => void }) {
+export function SearchPanel({
+  audience,
+  initialReview = false,
+  onClose,
+  userProviders,
+  initialView = 'detail',
+}: {
+  audience: Audience;
+  initialReview?: boolean;
+  onClose: () => void;
+  userProviders?: number[];
+  initialView?: 'detail' | 'grid';
+}) {
   const [tab, setTab] = useState<'search' | 'review'>(initialReview ? 'review' : 'search');
+  const [view, setView] = useState<'detail' | 'grid'>(initialView);
   const [q, setQ] = useState('');
   const [library, setLibrary] = useState<MovieResult[] | null>(null);
   const [candidates, setCandidates] = useState<TmdbCandidate[] | null>(null);
@@ -21,10 +35,10 @@ export function SearchPanel({ audience, initialReview = false, onClose }: { audi
     if (q.trim().length < 2) { setLibrary(null); return; }
     let stale = false;
     const t = setTimeout(() => {
-      searchLibrary(q, audience).then((r) => !stale && setLibrary(r)).catch((e) => !stale && setError(e.message));
+      searchLibrary(q, audience, userProviders).then((r) => !stale && setLibrary(r)).catch((e) => !stale && setError(e.message));
     }, 300);
     return () => { stale = true; clearTimeout(t); };
-  }, [q, audience]);
+  }, [q, audience, userProviders]);
 
   const run = async <T,>(key: number | 'tmdb', fn: () => Promise<T>, ok: (r: T) => void | Promise<void>) => {
     setBusy(key); setError(null);
@@ -34,7 +48,7 @@ export function SearchPanel({ audience, initialReview = false, onClose }: { audi
   const add = (c: TmdbCandidate) =>
     run(c.tmdb_id, () => addFromTmdb(c.tmdb_id), async () => {
       setCandidates(null);
-      setLibrary(await searchLibrary(c.title, audience));
+      setLibrary(await searchLibrary(c.title, audience, userProviders));
       setQ(c.title);
       if (audience === 'kids') setTab('review');
     });
@@ -46,6 +60,13 @@ export function SearchPanel({ audience, initialReview = false, onClose }: { audi
           <Search className="h-5 w-5 text-slate-400" />
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search any film…"
             className="min-h-11 flex-1 rounded-xl border border-slate-300 bg-transparent px-3 dark:border-slate-600" />
+          <button
+            aria-label={view === 'grid' ? 'Show detailed cards' : 'Show compact poster grid'}
+            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => setView((v) => (v === 'grid' ? 'detail' : 'grid'))}
+          >
+            {view === 'grid' ? <List className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
+          </button>
           <button aria-label="Close search" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
             <X className="h-5 w-5" />
           </button>
@@ -60,9 +81,15 @@ export function SearchPanel({ audience, initialReview = false, onClose }: { audi
 
         {library && (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {library.map((m) => <MovieCard key={m.id} m={m} />)}
-            </div>
+            {view === 'grid' ? (
+              <div className="grid grid-cols-3 gap-3 md:grid-cols-4 lg:grid-cols-6">
+                {library.map((m) => <MovieTile key={m.id} m={m} />)}
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {library.map((m) => <MovieCard key={m.id} m={m} />)}
+              </div>
+            )}
             {library.length === 0 && <p className="py-4 text-center text-sm text-slate-500">No match in our catalogue yet.</p>}
             {!usingMock && (
               <div className="py-4 text-center">

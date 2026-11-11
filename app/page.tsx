@@ -196,7 +196,7 @@ export default function Home() {
       </div>}
 
       <FilterDrawer open={open} onOpenChange={setOpen} filters={filters} setFilters={setFilters} count={movies?.length ?? 0} more={hasMore} />
-      {searching && <SearchPanel audience={audience} onClose={() => {
+      {searching && <SearchPanel audience={audience} userProviders={filters.providers} initialView={view} onClose={() => {
         setSearching(false);
         const url = new URL(window.location.href);
         url.searchParams.delete('review');
