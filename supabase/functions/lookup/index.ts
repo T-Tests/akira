@@ -22,13 +22,37 @@ const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 });
 
 async function tmdb(path: string, params: Record<string, string> = {}) {
-  const token = Deno.env.get('TMDB_READ_TOKEN');
+  let token = Deno.env.get('TMDB_READ_TOKEN')?.trim() ?? '';
   if (!token) throw new Error('TMDB_READ_TOKEN secret is not configured in Supabase Edge Functions.');
+  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.toLowerCase().startsWith('bearer ')) {
+    token = token.slice(7).trim();
+  }
+
   const url = new URL(`https://api.themoviedb.org/3${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error(`TMDB error (${res.status}): ${await res.text().catch(() => res.statusText)}`);
-  return await res.json();
+
+  // Try Bearer token if it looks like a v4 JWT (starts with eyJ)
+  if (token.startsWith('eyJ')) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+    if (res.ok) return await res.json();
+    // If Bearer failed, also try query parameter as fallback
+    const fallbackUrl = new URL(url.toString());
+    fallbackUrl.searchParams.set('api_key', token);
+    const retry = await fetch(fallbackUrl, { headers: { Accept: 'application/json' } });
+    if (retry.ok) return await retry.json();
+    const body = await res.text().catch(() => res.statusText);
+    throw new Error(`TMDB error (${res.status}): ${body} (Token length: ${token.length}, type: v4 JWT).`);
+  } else {
+    // Otherwise treat as v3 API Key (?api_key=...)
+    url.searchParams.set('api_key', token);
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (res.ok) return await res.json();
+    const body = await res.text().catch(() => res.statusText);
+    throw new Error(`TMDB error (${res.status}): ${body} (Token length: ${token.length}. Note: TMDB v4 Read Access Tokens start with "eyJ" and are ~200+ characters).`);
+  }
 }
 
 async function sha256(s: string) {

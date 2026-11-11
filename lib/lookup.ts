@@ -102,11 +102,11 @@ export async function searchTmdb(query: string): Promise<TmdbCandidate[]> {
   } catch (err) {
     const token = process.env.NEXT_PUBLIC_TMDB_READ_TOKEN || process.env.TMDB_READ_TOKEN;
     if (token) {
-      return await searchTmdbDirect(query);
-    }
-    const msg = (err as Error)?.message || '';
-    if (msg.includes('TMDB') || msg.includes('Lookup failed') || msg.includes('401') || msg.includes('500')) {
-      throw new Error('TMDB search failed. Please ensure TMDB_READ_TOKEN is configured in your Supabase Edge Function secrets (or .env file).');
+      try {
+        return await searchTmdbDirect(query);
+      } catch (directErr) {
+        throw new Error((directErr as Error).message);
+      }
     }
     throw err;
   }
