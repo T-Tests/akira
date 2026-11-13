@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { Tag, fillPrompt } from '../supabase/functions/_shared/tagging.ts';
+import { Tag, fillPrompt, parseJsonSafe } from '../supabase/functions/_shared/tagging.ts';
 
 const vars = {
   title: 'Example', year: '2026', tmdb_id: '42', language: 'en',
@@ -14,4 +14,10 @@ const tagged = {
 };
 assert.equal(Tag.parse(tagged).confidence, undefined);
 assert.throws(() => Tag.parse({ ...tagged, violence: 4 }));
+
+// Verify parseJsonSafe handles raw JSON and markdown code blocks from LLMs
+assert.deepEqual(parseJsonSafe('{"hello": "world"}'), { hello: 'world' });
+assert.deepEqual(parseJsonSafe('```json\n{"hello": "world"}\n```'), { hello: 'world' });
+assert.deepEqual(parseJsonSafe('```\n{"hello": "world"}\n```'), { hello: 'world' });
+
 console.log('Tagging contract checks passed.');

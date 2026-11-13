@@ -11,7 +11,7 @@ import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
-import { Tag, fillPrompt } from '../supabase/functions/_shared/tagging.ts';
+import { Tag, fillPrompt, parseJsonSafe } from '../supabase/functions/_shared/tagging.ts';
 
 const { values: a } = parseArgs({
   options: {
@@ -24,7 +24,12 @@ const { values: a } = parseArgs({
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
 type Endpoint = { baseUrl?: string; key?: string; model?: string };
-const primary: Endpoint = { baseUrl: process.env.LLM_BASE_URL, key: process.env.LLM_API_KEY, model: process.env.LLM_MODEL };
+const geminiKey = process.env.GEMINI_API_KEY?.trim();
+const primary: Endpoint = {
+  baseUrl: process.env.LLM_BASE_URL || (geminiKey ? 'https://generativelanguage.googleapis.com/v1beta/openai' : undefined),
+  key: geminiKey || process.env.LLM_API_KEY?.trim(),
+  model: process.env.GEMINI_MODEL?.trim() || process.env.LLM_MODEL?.trim() || (geminiKey ? 'gemini-2.5-flash' : undefined),
+};
 
 async function callLLM(prompt: string, temperature = 0.1, ep: Endpoint = primary): Promise<unknown> {
   const res = await fetch(`${ep.baseUrl}/chat/completions`, {
@@ -39,7 +44,7 @@ async function callLLM(prompt: string, temperature = 0.1, ep: Endpoint = primary
   });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${await res.text()}`);
   const j: any = await res.json();
-  return JSON.parse(j.choices[0].message.content);
+  return parseJsonSafe(j.choices[0].message.content);
 }
 
 async function guideFor(tmdbId: number) {
@@ -55,11 +60,13 @@ const { data: drafts, error } = await db
   .limit(Math.min(Number(a.limit), 1000)); // PostgREST returns at most 1000 rows per request
 if (error) throw error;
 if ((drafts?.length ?? 0) > 0 && !primary.key) {
-  throw new Error('LLM_API_KEY is required to tag draft movies.');
+  throw new Error('GEMINI_API_KEY (or LLM_API_KEY) is required to tag draft movies.');
 }
 
-// Gemini free tier allows roughly 10 requests/min; override with LLM_DELAY_MS.
-const delay = Number(process.env.LLM_DELAY_MS ?? 7000);
+// Gemini free tier allows roughly 15 requests/min (4s delay); override with LLM_DELAY_MS.
+const isGemini = Boolean(geminiKey) || Boolean(primary.baseUrl?.includes('generativelanguage.googleapis.com'));
+const defaultDelay = isGemini ? 4000 : 7000;
+const delay = Number(process.env.LLM_DELAY_MS ?? defaultDelay);
 let failed = 0;
 let attempted = 0;
 const deadline = a['max-minutes'] ? Date.now() + Number(a['max-minutes']) * 60_000 : Infinity;

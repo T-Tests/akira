@@ -104,3 +104,8 @@ export const fillPrompt = (v: PromptVars) =>
   (Object.keys(v) as (keyof PromptVars)[])
     .reduce((s, k) => s.replace(`{{${k}}}`, () => v[k]), TAGGING_PROMPT)
     .replace('{{confidence_output}}', v.audience === 'adults' ? '' : ',\n  "confidence": 0.0-1.0');
+
+export function parseJsonSafe(raw: string): unknown {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1').trim();
+  return JSON.parse(cleaned);
+}

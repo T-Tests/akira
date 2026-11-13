@@ -1,8 +1,8 @@
 // On-demand lookup: search TMDB, or add one film (metadata + availability + single-LLM tagging) and
 // publish it as 'ai_reviewed'. Deploy: supabase functions deploy lookup --no-verify-jwt
-// Secrets: TMDB_READ_TOKEN, LLM_BASE_URL, LLM_API_KEY, LLM_MODEL, optional ONDEMAND_DAILY_CAP
+// Secrets: TMDB_READ_TOKEN, GEMINI_API_KEY (or LLM_BASE_URL, LLM_API_KEY, LLM_MODEL), optional ONDEMAND_DAILY_CAP
 import { createClient } from '@supabase/supabase-js';
-import { Tag, fillPrompt } from '../_shared/tagging.ts';
+import { Tag, fillPrompt, parseJsonSafe } from '../_shared/tagging.ts';
 
 const TYPES = ['flatrate', 'free', 'ads'];
 const SEARCH_PER_HOUR = 30;
@@ -69,21 +69,37 @@ async function count(since: Date, kind?: string, ipHash?: string) {
   return n ?? 0;
 }
 
+function getLLMConfig() {
+  const geminiKey = Deno.env.get('GEMINI_API_KEY')?.trim();
+  const apiKey = geminiKey || Deno.env.get('LLM_API_KEY')?.trim();
+  const baseUrl = Deno.env.get('LLM_BASE_URL')?.trim() || (geminiKey ? 'https://generativelanguage.googleapis.com/v1beta/openai' : '');
+  const model = Deno.env.get('GEMINI_MODEL')?.trim() || Deno.env.get('LLM_MODEL')?.trim() || (geminiKey ? 'gemini-2.5-flash' : '');
+  return { apiKey, baseUrl, model };
+}
+
 async function callLLM(prompt: string) {
-  const res = await fetch(`${Deno.env.get('LLM_BASE_URL')}/chat/completions`, {
+  const { apiKey, baseUrl, model } = getLLMConfig();
+  if (!apiKey || !baseUrl) {
+    throw new Error('LLM configuration missing. Please configure GEMINI_API_KEY (or LLM_API_KEY and LLM_BASE_URL) in Supabase Edge Function secrets.');
+  }
+
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', Authorization: `Bearer ${Deno.env.get('LLM_API_KEY')}` },
+    headers: { 'content-type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: Deno.env.get('LLM_MODEL'),
+      model: model || 'gemini-2.5-flash',
       temperature: 0.1,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     }),
     signal: AbortSignal.timeout(90_000),
   });
-  if (!res.ok) throw new Error(`LLM ${res.status}`);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`LLM ${res.status}: ${errText}`);
+  }
   const j = await res.json();
-  return JSON.parse(j.choices[0].message.content);
+  return parseJsonSafe(j.choices?.[0]?.message?.content ?? '');
 }
 
 async function search(query: string) {
@@ -154,8 +170,9 @@ async function add(tmdbId: number) {
   })));
   if (t.tmdb_id !== m.id) throw new Error('tmdb_id mismatch');
 
+  const { model: activeModel } = getLLMConfig();
   const { error: tagError } = await db.rpc('complete_movie_tagging', {
-    p_movie_id: movieId, p_tag: t, p_model: Deno.env.get('LLM_MODEL'),
+    p_movie_id: movieId, p_tag: t, p_model: activeModel || 'gemini-2.5-flash',
   });
   if (tagError) throw tagError;
   return json({ tmdb_id: m.id, status: 'added' });
