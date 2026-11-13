@@ -92,6 +92,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.1-flash-lite
-          LLM_BASE_URL: https://ollama.com/v1
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_MODEL: gpt-oss:120b
+          # LLM_BASE_URL: https://ollama.com/v1
+          # LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          # LLM_MODEL: gpt-oss:120b
